@@ -3,24 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UCE Sales Portal</title>
+  <title>UCE Sales Portal (Desktop)</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    html, body {
-      background-color: #f8fafc;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 0.88rem;
-      overscroll-behavior: none !important;
-      -webkit-overscroll-behavior: none !important;
-    }
+    body { background-color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.88rem; }
     .sidebar { background: #0f172a; color: #fff; min-height: 100vh; }
     .sidebar .nav-link { color: #94a3b8; font-weight: 500; border-radius: 8px; margin-bottom: 5px; cursor: pointer; }
     .sidebar .nav-link.active, .sidebar .nav-link:hover { color: #fff; background-color: #1e293b; }
     .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
     .form-label { font-weight: 600; font-size: 0.8rem; color: #475569; }
-    .table-responsive { max-height: 540px; overflow-y: auto; overscroll-behavior-y: contain; }
+    .table-responsive { max-height: 540px; overflow-y: auto; }
     .stat-card { border-left: 4px solid #0d6efd; }
     
     /* Calendar Styling */
@@ -732,7 +726,7 @@
         </div>
 
         <div class="p-2 bg-light rounded border extra-small text-muted mb-2">
-          <i class="fa fa-info-circle me-1 text-primary"></i> Data will be exported in exact Google Sheet 20-columns structure including Follow-up dates and values.
+          <i class="fa fa-info-circle me-1 text-primary"></i> Data will be exported in exact Google Sheet structure.
         </div>
       </div>
       <div class="modal-footer py-2">
@@ -1015,22 +1009,22 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // PULL-TO-REFRESH BLOCKER
-  let touchStartY = 0;
-  window.addEventListener('touchstart', function(e) {
-    if (e.touches && e.touches.length === 1) {
-      touchStartY = e.touches[0].clientY;
-    }
-  }, { passive: false });
+  // APPS SCRIPT API ENDPOINT (Vercel compatible fetch bridge)
+  const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
 
-  window.addEventListener('touchmove', function(e) {
-    if (!e.touches || e.touches.length !== 1) return;
-    const touchY = e.touches[0].clientY;
-    const touchDiff = touchY - touchStartY;
-    if (window.scrollY <= 0 && touchDiff > 0) {
-      if (e.cancelable) e.preventDefault();
+  async function callAppsScriptApi(action, data = {}) {
+    try {
+      const response = await fetch(APPS_SCRIPT_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: action, data: data })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error("API Call Error:", error);
+      return { success: false, message: error.toString() };
     }
-  }, { passive: false });
+  }
 
   let rawCustomers = [], masterSalesPersons = [], masterBrandsList = [];
   let loggedInUser = null, globalEnquiries = [], globalActivities = [];
@@ -1042,7 +1036,6 @@
   let selectedActivityDateStr = '';
   let userGeoCoords = null;
 
-  // FLOATING IN-APP POPUP ENGINE
   let bannerTimer = null;
   function showFloatingNotification(title, message) {
     playNotificationChime();
@@ -1054,11 +1047,8 @@
       titleEl.innerText = title;
       msgEl.innerText = message;
       banner.classList.add('show');
-
       if (bannerTimer) clearTimeout(bannerTimer);
-      bannerTimer = setTimeout(() => {
-        banner.classList.remove('show');
-      }, 5000);
+      bannerTimer = setTimeout(() => { banner.classList.remove('show'); }, 5000);
     }
   }
 
@@ -1066,62 +1056,6 @@
     const banner = document.getElementById('floatingNotificationBanner');
     if (banner) banner.classList.remove('show');
     if (bannerTimer) clearTimeout(bannerTimer);
-  }
-
-  // WEB NOTIFICATION SYSTEM
-  function checkNotificationSupport() {
-    if ('Notification' in window) {
-      const btn = document.getElementById('notifEnableBtn');
-      if (Notification.permission === 'default' && btn) {
-        btn.classList.remove('d-none');
-      } else if (btn) {
-        btn.classList.add('d-none');
-      }
-    }
-  }
-
-  async function requestNotificationPermission() {
-    if (!('Notification' in window)) {
-      showFloatingNotification("Notice", "This browser does not support native notification API.");
-      return;
-    }
-    const permission = await Notification.requestPermission();
-    const btn = document.getElementById('notifEnableBtn');
-    if (permission === 'granted') {
-      if (btn) btn.classList.add('d-none');
-      showFloatingNotification("Active", "Push notifications are now enabled!");
-      sendLocalPushNotification("UCE Sales Portal", "Notifications configured successfully!");
-    } else {
-      showAlert("Notification permission was denied.", "warning");
-    }
-  }
-
-  function sendLocalPushNotification(title, message) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(title, {
-          body: message,
-          icon: "https://unitedcontrolengg.com/wp-content/uploads/2025/06/United-Logo.png",
-          badge: "https://unitedcontrolengg.com/wp-content/uploads/2025/06/United-Logo.png"
-        });
-      } catch (e) {}
-    }
-  }
-
-  function toggleEnquiryForm() {
-    const wrapper = document.getElementById('enquiryFormCollapseWrapper');
-    const btn = document.getElementById('toggleEnquiryFormBtn');
-    if (!wrapper || !btn) return;
-
-    if (wrapper.classList.contains('d-none')) {
-      wrapper.classList.remove('d-none');
-      btn.innerHTML = '<i class="fa fa-eye-slash me-1"></i> Hide Form';
-      btn.classList.replace('btn-primary', 'btn-outline-primary');
-    } else {
-      wrapper.classList.add('d-none');
-      btn.innerHTML = '<i class="fa fa-plus me-1"></i> Show / Create Enquiry';
-      btn.classList.replace('btn-outline-primary', 'btn-primary');
-    }
   }
 
   function playNotificationChime() {
@@ -1145,7 +1079,7 @@
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         pos => { userGeoCoords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude }; },
-        err => { console.log("Geo access skipped/denied."); },
+        err => {},
         { timeout: 8000, enableHighAccuracy: false }
       );
     }
@@ -1153,13 +1087,11 @@
 
   window.addEventListener('DOMContentLoaded', function() {
     resetEnquiryForm();
-    checkNotificationSupport();
     document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
     document.getElementById('enquiryForm').addEventListener('submit', handleEnquirySubmit);
 
     const savedTab = localStorage.getItem('active_portal_tab') || 'enquiry';
     showTab(savedTab, false);
-
     checkSession();
     initGeolocation();
   });
@@ -1186,7 +1118,6 @@
     const orderDateVal = document.getElementById('enquiryDate').value;
     const termDays = parseInt(document.getElementById('paymentTermsSelect').value, 10) || 0;
     if (!orderDateVal) return;
-
     const base = new Date(orderDateVal);
     base.setDate(base.getDate() + termDays);
     document.getElementById('paymentFollowupDate').value = base.toISOString().split('T')[0];
@@ -1219,8 +1150,7 @@
       labelEl.innerText = "Select Brands...";
       labelEl.classList.add('text-muted');
     } else if (cbs.length <= 2) {
-      const names = Array.from(cbs).map(cb => cb.value).join(', ');
-      labelEl.innerText = names;
+      labelEl.innerText = Array.from(cbs).map(cb => cb.value).join(', ');
       labelEl.classList.remove('text-muted');
     } else {
       labelEl.innerText = `${cbs.length} Brands Selected (${cbs[0].value}, +${cbs.length - 1} more)`;
@@ -1237,34 +1167,28 @@
     }
   }
 
-  function submitNewBrandPermanently() {
+  async function submitNewBrandPermanently() {
     const input = document.getElementById('newCustomBrandInput');
     const brandName = input.value.trim();
     if (!brandName) { alert("Please enter brand name!"); return; }
 
     const sp = loggedInUser ? loggedInUser.salesPerson : 'User';
-    google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.success) {
-          if (masterBrandsList.indexOf(res.brand) === -1) {
-            masterBrandsList.push(res.brand);
-          }
-          renderBrandCheckboxes(masterBrandsList);
-          
-          setTimeout(() => {
-            const cbs = document.querySelectorAll('.brand-checkbox-input');
-            cbs.forEach(cb => { if (cb.value.toLowerCase() === res.brand.toLowerCase()) cb.checked = true; });
-            updateBrandDropdownLabel();
-          }, 100);
+    const res = await callAppsScriptApi("addNewMasterBrand", { brandName: brandName, sp: sp });
 
-          input.value = '';
-          toggleAddNewBrandInput();
-          showFloatingNotification("New Brand Added", `Brand "${res.brand}" is now permanently saved.`);
-        } else {
-          alert("Error: " + res.message);
-        }
-      })
-      .addNewMasterBrand(brandName, sp);
+    if (res && res.success) {
+      if (masterBrandsList.indexOf(res.brand) === -1) masterBrandsList.push(res.brand);
+      renderBrandCheckboxes(masterBrandsList);
+      setTimeout(() => {
+        const cbs = document.querySelectorAll('.brand-checkbox-input');
+        cbs.forEach(cb => { if (cb.value.toLowerCase() === res.brand.toLowerCase()) cb.checked = true; });
+        updateBrandDropdownLabel();
+      }, 100);
+      input.value = '';
+      toggleAddNewBrandInput();
+      showFloatingNotification("Brand Added", `Brand "${res.brand}" saved successfully.`);
+    } else {
+      alert("Error: " + (res ? res.message : 'Failed'));
+    }
   }
 
   function getSelectedBrandsList() {
@@ -1282,7 +1206,6 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('loggedUser').innerText = loggedInUser.salesPerson + " (" + loggedInUser.role + ")";
         fetchMasterData();
-        checkNotificationSupport();
       } catch (err) {
         logout();
       }
@@ -1291,11 +1214,10 @@
     }
   }
 
-  function fetchMasterData() {
-    google.script.run
-      .withSuccessHandler(onMasterDataLoaded)
-      .withFailureHandler(err => showAlert("Master Data Error: " + err.message, "danger"))
-      .getMasterData(loggedInUser);
+  async function fetchMasterData() {
+    const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
+    if (!data) return;
+    onMasterDataLoaded(data);
   }
 
   function onMasterDataLoaded(data) {
@@ -1314,18 +1236,11 @@
       exportSpOpts += `<option value="${sp}">${sp}</option>`;
     });
 
-    const spListDatalist = document.getElementById('salesPersonsList');
-    if (spListDatalist) spListDatalist.innerHTML = spOptionsHtml;
-
-    const spFilter = document.getElementById('filterSalesPerson');
-    const actSpFilter = document.getElementById('actFilterSalesPerson');
-    const adminTargetSpSelect = document.getElementById('adminTargetSp');
-    const exportSpSelect = document.getElementById('exportSpSelect');
-
-    if (spFilter) spFilter.innerHTML = filterOpts;
-    if (actSpFilter) actSpFilter.innerHTML = filterOpts;
-    if (adminTargetSpSelect) adminTargetSpSelect.innerHTML = adminTargetOpts;
-    if (exportSpSelect) exportSpSelect.innerHTML = exportSpOpts;
+    document.getElementById('salesPersonsList').innerHTML = spOptionsHtml;
+    document.getElementById('filterSalesPerson').innerHTML = filterOpts;
+    document.getElementById('actFilterSalesPerson').innerHTML = filterOpts;
+    document.getElementById('adminTargetSp').innerHTML = adminTargetOpts;
+    document.getElementById('exportSpSelect').innerHTML = exportSpOpts;
 
     const role = loggedInUser && loggedInUser.role ? loggedInUser.role.toLowerCase() : '';
     const isAdmin = role.indexOf('admin') > -1;
@@ -1333,37 +1248,23 @@
     const isMgmt = isAdmin || isManager;
 
     const adminTargetCard = document.getElementById('adminTargetCard');
-    if (adminTargetCard) {
-      if (isAdmin) adminTargetCard.classList.remove('d-none');
-      else adminTargetCard.classList.add('d-none');
-    }
+    if (adminTargetCard) adminTargetCard.classList.toggle('d-none', !isAdmin);
 
     const spInputEl = document.getElementById('salesPersonInput');
     const transferWrapper = document.getElementById('transferActionWrapper');
 
     if (!isMgmt) {
       if (spInputEl) { spInputEl.value = loggedInUser ? loggedInUser.salesPerson : ''; spInputEl.readOnly = true; }
-      if (spFilter) { spFilter.value = loggedInUser ? loggedInUser.salesPerson : 'ALL'; spFilter.disabled = true; }
-      if (actSpFilter) { actSpFilter.value = loggedInUser ? loggedInUser.salesPerson : 'ALL'; actSpFilter.disabled = true; }
-      if (exportSpSelect) { exportSpSelect.value = loggedInUser ? loggedInUser.salesPerson : 'ALL'; exportSpSelect.disabled = true; }
       if (transferWrapper) transferWrapper.classList.add('d-none');
     } else {
-      if (spInputEl) spInputEl.readOnly = false;
-      if (spFilter) spFilter.disabled = false;
-      if (actSpFilter) actSpFilter.disabled = false;
-      if (exportSpSelect) exportSpSelect.disabled = false;
       if (transferWrapper) transferWrapper.classList.remove('d-none');
-
-      const transferSelect = document.getElementById('modalTransferSp');
-      if (transferSelect) {
-        let tOpts = '<option value="">Transfer Lead To...</option>';
-        masterSalesPersons.forEach(sp => { tOpts += `<option value="${sp}">${sp}</option>`; });
-        transferSelect.innerHTML = tOpts;
-      }
+      let tOpts = '<option value="">Transfer Lead To...</option>';
+      masterSalesPersons.forEach(sp => { tOpts += `<option value="${sp}">${sp}</option>`; });
+      document.getElementById('modalTransferSp').innerHTML = tOpts;
     }
 
-    if (loggedInUser && loggedInUser.salesPerson) {
-      if (spInputEl && !spInputEl.value) spInputEl.value = loggedInUser.salesPerson;
+    if (loggedInUser && loggedInUser.salesPerson && spInputEl && !spInputEl.value) {
+      spInputEl.value = loggedInUser.salesPerson;
     }
 
     filterCustomersBySalesPerson();
@@ -1373,44 +1274,25 @@
     setTimeout(loadSidebarTargetInfo, 600);
   }
 
-  function submitAdminTargetUpdate() {
-    const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
-    if (role.indexOf('admin') === -1) {
-      showAlert("Only Admin can set or update sales targets.", "danger");
-      return;
-    }
-
+  async function submitAdminTargetUpdate() {
     const sp = document.getElementById('adminTargetSp').value;
     const month = document.getElementById('adminTargetMonth').value;
     const val = document.getElementById('adminTargetVal').value;
-
-    if (!sp || !val) {
-      alert("Please select salesperson and enter target value!");
-      return;
-    }
+    if (!sp || !val) { alert("Please select salesperson and enter target value!"); return; }
 
     const btn = document.getElementById('adminTargetBtn');
-    btn.disabled = true;
-    btn.innerText = 'Updating...';
+    btn.disabled = true; btn.innerText = 'Updating...';
 
-    google.script.run
-      .withSuccessHandler(res => {
-        btn.disabled = false;
-        btn.innerText = 'Update Target';
-        if (res && res.success) {
-          showFloatingNotification("Target Updated", res.message);
-          document.getElementById('adminTargetVal').value = '';
-          loadSidebarTargetInfo();
-        } else {
-          showAlert("Error: " + res.message, 'danger');
-        }
-      })
-      .withFailureHandler(err => {
-        btn.disabled = false;
-        btn.innerText = 'Update Target';
-        showAlert("Server Error: " + err.message, 'danger');
-      })
-      .updateSalespersonTargetFromPortal({ salesPerson: sp, monthCol: month, targetValue: val });
+    const res = await callAppsScriptApi("updateSalespersonTargetFromPortal", { salesPerson: sp, monthCol: month, targetValue: val });
+    btn.disabled = false; btn.innerText = 'Update Target';
+
+    if (res && res.success) {
+      showFloatingNotification("Target Updated", res.message);
+      document.getElementById('adminTargetVal').value = '';
+      loadSidebarTargetInfo();
+    } else {
+      showAlert("Error: " + (res ? res.message : 'Failed'), 'danger');
+    }
   }
 
   function populateCustomerDatalist(customersList) {
@@ -1438,7 +1320,6 @@
     if (spInput) {
       filtered = rawCustomers.filter(c => String(c.salesPerson || '').toLowerCase().trim() === spInput || String(c.salesPerson || '').toLowerCase().trim().indexOf(spInput) > -1);
     }
-
     actList.innerHTML = filtered.map(c => `<option value="${c.name}">`).join('');
   }
 
@@ -1450,9 +1331,7 @@
       document.getElementById('custContactPerson').value = cust.contactPerson || '';
       document.getElementById('custMobile').value = cust.mobile || '';
       document.getElementById('custEmail').value = cust.email || '';
-      if (cust.defaultTerms !== undefined) {
-        document.getElementById('paymentTermsSelect').value = cust.defaultTerms;
-      }
+      if (cust.defaultTerms !== undefined) document.getElementById('paymentTermsSelect').value = cust.defaultTerms;
       if (cust.salesPerson && !document.getElementById('salesPersonInput').value) {
         document.getElementById('salesPersonInput').value = cust.salesPerson;
       }
@@ -1460,36 +1339,30 @@
     }
   }
 
-  function handleLoginSubmit(e) {
+  async function handleLoginSubmit(e) {
     e.preventDefault();
     const btn = document.getElementById('loginBtn');
     btn.disabled = true; btn.innerText = "Verifying...";
+    const u = document.getElementById('loginUsername').value.trim();
+    const p = document.getElementById('loginPassword').value.trim();
 
-    google.script.run
-      .withSuccessHandler(res => {
-        btn.disabled = false; btn.innerText = "Login";
-        if (res && res.success) {
-          loggedInUser = res.user;
-          localStorage.setItem('sales_portal_session', JSON.stringify(loggedInUser));
-          document.getElementById('loginScreen').style.display = 'none';
-          document.getElementById('loggedUser').innerText = res.user.salesPerson + " (" + res.user.role + ")";
-          fetchMasterData();
-          checkNotificationSupport();
-          showFloatingNotification("Welcome", `Logged in as ${loggedInUser.salesPerson}`);
-        } else {
-          document.getElementById('loginError').innerText = res.message || "Invalid Credentials";
-          document.getElementById('loginError').classList.remove('d-none');
-        }
-      })
-      .withFailureHandler(err => {
-        btn.disabled = false; btn.innerText = "Login";
-        document.getElementById('loginError').innerText = err.message;
-        document.getElementById('loginError').classList.remove('d-none');
-      })
-      .checkLogin(document.getElementById('loginUsername').value, document.getElementById('loginPassword').value);
+    const res = await callAppsScriptApi("checkLogin", { username: u, password: p });
+    btn.disabled = false; btn.innerText = "Login";
+
+    if (res && res.success) {
+      loggedInUser = res.user;
+      localStorage.setItem('sales_portal_session', JSON.stringify(loggedInUser));
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('loggedUser').innerText = loggedInUser.salesPerson + " (" + loggedInUser.role + ")";
+      fetchMasterData();
+      showFloatingNotification("Welcome", `Logged in as ${loggedInUser.salesPerson}`);
+    } else {
+      document.getElementById('loginError').innerText = res ? res.message : "Invalid Credentials";
+      document.getElementById('loginError').classList.remove('d-none');
+    }
   }
 
-  function handleEnquirySubmit(e) {
+  async function handleEnquirySubmit(e) {
     e.preventDefault();
     const custName = document.getElementById('customerInput').value;
     const saveBtn = document.getElementById('saveEnquiryBtn');
@@ -1522,37 +1395,28 @@
       longitude: userGeoCoords ? userGeoCoords.longitude : ''
     };
 
-    google.script.run
-      .withSuccessHandler(res => {
-        saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
-        if (res && res.success) {
-          showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
-          resetEnquiryForm();
-          fetchMasterData();
-        } else {
-          showAlert('Error: ' + res.message, 'danger');
-        }
-      })
-      .withFailureHandler(err => {
-        saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
-        showAlert('Save Failed: ' + err.message, 'danger');
-      })
-      .saveEnquiry(formData);
+    const res = await callAppsScriptApi("saveEnquiry", formData);
+    saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
+
+    if (res && res.success) {
+      showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
+      resetEnquiryForm();
+      fetchMasterData();
+    } else {
+      showAlert('Error: ' + (res ? res.message : 'Failed'), 'danger');
+    }
   }
 
-  function loadDashboardData() {
+  async function loadDashboardData() {
     if (!loggedInUser) return;
-    google.script.run
-      .withSuccessHandler(renderDashboardData)
-      .withFailureHandler(err => showAlert("Dashboard Data Error: " + err.message, "danger"))
-      .getDashboardData(loggedInUser);
+    const data = await callAppsScriptApi("getDashboardData", { user: loggedInUser });
+    if (data) renderDashboardData(data);
   }
 
   function renderDashboardData(data) {
     if (!data) return;
     globalEnquiries = data.enquiries || [];
     globalActivities = data.activities || [];
-    
     applyDashboardFilters();
     renderLostEnquiriesTable(globalEnquiries);
     checkTodayReminders(globalEnquiries);
@@ -1562,16 +1426,11 @@
 
   function checkTodayReminders(enquiries) {
     const todayStr = new Date().toISOString().split('T')[0];
-    let todayLeadCount = 0;
-    let todayPayCount = 0;
+    let todayLeadCount = 0, todayPayCount = 0;
 
     enquiries.forEach(e => {
-      if (e.leadFollowup === todayStr && String(e.status).toLowerCase() !== 'won' && String(e.status).toLowerCase() !== 'lost') {
-        todayLeadCount++;
-      }
-      if (e.paymentFollowup === todayStr && String(e.paymentStatus).toLowerCase() !== 'fully paid') {
-        todayPayCount++;
-      }
+      if (e.leadFollowup === todayStr && String(e.status).toLowerCase() !== 'won' && String(e.status).toLowerCase() !== 'lost') todayLeadCount++;
+      if (e.paymentFollowup === todayStr && String(e.paymentStatus).toLowerCase() !== 'fully paid') todayPayCount++;
     });
 
     const banner = document.getElementById('reminderBanner');
@@ -1582,8 +1441,7 @@
         textElem.innerHTML = `You have <b>${todayLeadCount} Lead Follow-up(s)</b> and <b>${todayPayCount} Payment Follow-up(s)</b> scheduled for today (${todayStr}).`;
         banner.classList.remove('d-none');
       }
-      showFloatingNotification("Today's Reminders Alert", `📅 You have ${todayLeadCount} Lead & ${todayPayCount} Payment follow-ups scheduled today!`);
-      sendLocalPushNotification("UCE Follow-up Alert", `You have ${todayLeadCount} lead and ${todayPayCount} payment follow-ups today.`);
+      showFloatingNotification("Today's Reminders", `${todayLeadCount} Lead & ${todayPayCount} Payment follow-ups today!`);
     } else {
       if (banner) banner.classList.add('d-none');
     }
@@ -1603,28 +1461,21 @@
     renderPaginatedTable();
   }
 
-  function clearReminderFilter() {
-    applyDashboardFilters();
-  }
-
+  function clearReminderFilter() { applyDashboardFilters(); }
   function clearDateRangeFilter() {
     document.getElementById('filterFromDate').value = '';
     document.getElementById('filterToDate').value = '';
     applyDashboardFilters();
   }
-
-  function onSalespersonFilterChange() {
-    applyDashboardFilters();
-    loadSidebarTargetInfo();
-  }
+  function onSalespersonFilterChange() { applyDashboardFilters(); loadSidebarTargetInfo(); }
 
   function applyDashboardFilters() {
-    const fromDate = document.getElementById('filterFromDate') ? document.getElementById('filterFromDate').value : '';
-    const toDate = document.getElementById('filterToDate') ? document.getElementById('filterToDate').value : '';
-    const spFilter = document.getElementById('filterSalesPerson') ? document.getElementById('filterSalesPerson').value : 'ALL';
-    const stFilter = document.getElementById('filterStatus') ? document.getElementById('filterStatus').value : 'ALL';
-    const payFilter = document.getElementById('filterPaymentStatus') ? document.getElementById('filterPaymentStatus').value : 'ALL';
-    const searchVal = document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim().toLowerCase() : '';
+    const fromDate = document.getElementById('filterFromDate').value;
+    const toDate = document.getElementById('filterToDate').value;
+    const spFilter = document.getElementById('filterSalesPerson').value;
+    const stFilter = document.getElementById('filterStatus').value;
+    const payFilter = document.getElementById('filterPaymentStatus').value;
+    const searchVal = document.getElementById('searchInput').value.trim().toLowerCase();
 
     filteredEnquiriesList = globalEnquiries || [];
 
@@ -1640,21 +1491,11 @@
       });
     }
 
-    if (fromDate) {
-      filteredEnquiriesList = filteredEnquiriesList.filter(item => item.date && item.date >= fromDate);
-    }
-    if (toDate) {
-      filteredEnquiriesList = filteredEnquiriesList.filter(item => item.date && item.date <= toDate);
-    }
-    if (spFilter && spFilter !== 'ALL' && spFilter !== '') {
-      filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.salesPerson || '').toLowerCase() === spFilter.toLowerCase());
-    }
-    if (stFilter && stFilter !== 'ALL') {
-      filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.status || '').toLowerCase() === stFilter.toLowerCase());
-    }
-    if (payFilter && payFilter !== 'ALL') {
-      filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.paymentStatus || '').toLowerCase() === payFilter.toLowerCase());
-    }
+    if (fromDate) filteredEnquiriesList = filteredEnquiriesList.filter(item => item.date && item.date >= fromDate);
+    if (toDate) filteredEnquiriesList = filteredEnquiriesList.filter(item => item.date && item.date <= toDate);
+    if (spFilter !== 'ALL' && spFilter !== '') filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.salesPerson || '').toLowerCase() === spFilter.toLowerCase());
+    if (stFilter !== 'ALL') filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.status || '').toLowerCase() === stFilter.toLowerCase());
+    if (payFilter !== 'ALL') filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.paymentStatus || '').toLowerCase() === payFilter.toLowerCase());
 
     currentPage = 1;
     renderPaginatedTable();
@@ -1717,21 +1558,15 @@
   }
 
   function openMemberExportModal() {
-    const modal = document.getElementById('exportReportModal');
-    bootstrap.Modal.getOrCreateInstance(modal).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('exportReportModal')).show();
   }
 
   function onExportPresetChange() {
     const preset = document.getElementById('exportPresetSelect').value;
-    const row = document.getElementById('exportCustomDateRangeRow');
-    if (preset === 'custom') {
-      row.classList.remove('d-none');
-    } else {
-      row.classList.add('d-none');
-    }
+    document.getElementById('exportCustomDateRangeRow').classList.toggle('d-none', preset !== 'custom');
   }
 
-  function submitExportReportDownload() {
+  async function submitExportReportDownload() {
     const sp = document.getElementById('exportSpSelect').value;
     const preset = document.getElementById('exportPresetSelect').value;
     let fromDate = '', toDate = '';
@@ -1742,74 +1577,45 @@
     const dd = String(today.getDate()).padStart(2, '0');
     const todayStr = `${yyyy}-${mm}-${dd}`;
 
-    if (preset === 'today') {
-      fromDate = todayStr;
-      toDate = todayStr;
-    } else if (preset === 'week') {
+    if (preset === 'today') { fromDate = todayStr; toDate = todayStr; }
+    else if (preset === 'week') {
       const day = today.getDay();
       const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(today.setDate(diff));
-      fromDate = monday.toISOString().split('T')[0];
+      fromDate = new Date(today.setDate(diff)).toISOString().split('T')[0];
       toDate = todayStr;
     } else if (preset === 'month') {
-      fromDate = `${yyyy}-${mm}-01`;
-      toDate = todayStr;
+      fromDate = `${yyyy}-${mm}-01`; toDate = todayStr;
     } else if (preset === 'custom') {
       fromDate = document.getElementById('exportFromDate').value;
       toDate = document.getElementById('exportToDate').value;
     }
 
     const btn = document.getElementById('exportSubmitBtn');
-    btn.disabled = true;
-    btn.innerText = 'Exporting...';
+    btn.disabled = true; btn.innerText = 'Exporting...';
 
-    google.script.run
-      .withSuccessHandler(res => {
-        btn.disabled = false;
-        btn.innerText = 'Download CSV';
+    const res = await callAppsScriptApi("getEnquiriesExportData", { salesPerson: sp, fromDate: fromDate, toDate: toDate });
+    btn.disabled = false; btn.innerText = 'Download CSV';
 
-        if (res && res.success) {
-          if (!res.rows || res.rows.length === 0) {
-            alert("No enquiry records match this filter criteria.");
-            return;
-          }
+    if (res && res.success) {
+      if (!res.rows || res.rows.length === 0) { alert("No records match criteria."); return; }
+      let csvRows = [];
+      csvRows.push(res.headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(","));
+      res.rows.forEach(r => { csvRows.push(r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")); });
 
-          let csvRows = [];
-          csvRows.push(res.headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(","));
-
-          res.rows.forEach(r => {
-            csvRows.push(r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","));
-          });
-
-          const csvBlob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(csvBlob);
-          link.download = `Enquiries_${sp.replace(/\s+/g, '_')}_${preset}.csv`;
-          link.click();
-
-          bootstrap.Modal.getInstance(document.getElementById('exportReportModal')).hide();
-        } else {
-          alert("Export failed: " + (res ? res.message : 'Error'));
-        }
-      })
-      .withFailureHandler(err => {
-        btn.disabled = false;
-        btn.innerText = 'Download CSV';
-        alert("Server Export Error: " + err.message);
-      })
-      .getEnquiriesExportData({ salesPerson: sp, fromDate: fromDate, toDate: toDate });
+      const csvBlob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(csvBlob);
+      link.download = `Enquiries_${sp.replace(/\s+/g, '_')}_${preset}.csv`;
+      link.click();
+      bootstrap.Modal.getInstance(document.getElementById('exportReportModal')).hide();
+    } else {
+      alert("Export failed: " + (res ? res.message : 'Error'));
+    }
   }
 
   function toggleModalLostReason() {
-    const statusEl = document.getElementById('editStatus');
-    const container = document.getElementById('modalLostReasonContainer');
-    if (!statusEl || !container) return;
-
-    if (statusEl.value === 'Lost') {
-      container.classList.remove('d-none');
-    } else {
-      container.classList.add('d-none');
-    }
+    const stVal = document.getElementById('editStatus').value;
+    document.getElementById('modalLostReasonContainer').classList.toggle('d-none', stVal !== 'Lost');
   }
 
   function openEditModal(id) {
@@ -1819,7 +1625,6 @@
     currentLeadBrand = item.brand || 'Industrial Equipment';
     document.getElementById('modalEnqTitle').innerText = "Lead Details - " + item.id;
     document.getElementById('editEnqId').value = item.id;
-
     document.getElementById('mCustName').innerText = item.customer || '-';
     document.getElementById('mBrand').innerText = item.brand || '-';
     document.getElementById('mMode').innerText = item.mode || '-';
@@ -1827,16 +1632,11 @@
     document.getElementById('mDescription').innerText = item.description || '-';
 
     const masterCustomer = findMasterCustomer(item.customer, item.salesPerson);
-    const contact = masterCustomer ? getCustomerField(masterCustomer, ['contactPerson', 'contact person', 'contact']) : '-';
-    const phone = masterCustomer ? getCustomerField(masterCustomer, ['mobile', 'phone', 'mobileNumber']) : '-';
-    const email = masterCustomer ? getCustomerField(masterCustomer, ['email', 'emailId']) : '-';
-    const city = masterCustomer ? getCustomerField(masterCustomer, ['city', 'location']) : '-';
-
-    document.getElementById('mCustContact').innerText = contact;
-    document.getElementById('mCustPhone').innerText = phone;
-    document.getElementById('mCustEmail').innerText = email;
-    document.getElementById('mCustCity').innerText = city;
-    currentLeadPhone = phone === '-' ? '' : phone;
+    document.getElementById('mCustContact').innerText = masterCustomer ? getCustomerField(masterCustomer, ['contactPerson', 'contact']) : '-';
+    document.getElementById('mCustPhone').innerText = masterCustomer ? getCustomerField(masterCustomer, ['mobile', 'phone']) : '-';
+    document.getElementById('mCustEmail').innerText = masterCustomer ? getCustomerField(masterCustomer, ['email']) : '-';
+    document.getElementById('mCustCity').innerText = masterCustomer ? getCustomerField(masterCustomer, ['city']) : '-';
+    currentLeadPhone = masterCustomer ? getCustomerField(masterCustomer, ['mobile', 'phone']) : '';
 
     document.getElementById('editApproxValue').value = item.value || 0;
     document.getElementById('editStatus').value = item.status || 'New Lead';
@@ -1848,251 +1648,95 @@
     document.getElementById('editLostReason').value = item.lostReason || '';
     document.getElementById('editRemark').value = item.remark || '';
 
-    const isWonAndPaid = String(item.status).toLowerCase() === 'won' && String(item.paymentStatus).toLowerCase() === 'fully paid';
-    const isLocked = isWonAndPaid && (Number(item.editCount) >= 2);
-
-    const lockNotice = document.getElementById('modalLockNotice');
-    const saveBtn = document.getElementById('saveUpdateBtn');
-
-    if (lockNotice && saveBtn) {
-      if (isLocked) {
-        lockNotice.classList.remove('d-none');
-        saveBtn.disabled = true;
-        saveBtn.innerText = "🔒 Locked (Max 2 Edits Reached)";
-      } else {
-        lockNotice.classList.add('d-none');
-        saveBtn.disabled = false;
-        saveBtn.innerText = "Save Updates";
-      }
-    }
-
     toggleModalLostReason();
     fetchAndRenderDynamicCustomerDetails(item.customer, item.salesPerson);
-
-    const modalElement = document.getElementById('leadDetailsModal');
-    bootstrap.Modal.getOrCreateInstance(modalElement).show();
-  }
-
-  function normalizeCustomerLookupValue(value) {
-    return String(value == null ? '' : value).trim().toLowerCase();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('leadDetailsModal')).show();
   }
 
   function findMasterCustomer(customerName, salesPerson) {
-    const name = normalizeCustomerLookupValue(customerName);
-    const sp = normalizeCustomerLookupValue(salesPerson);
+    const name = String(customerName || '').trim().toLowerCase();
     if (!name || !Array.isArray(rawCustomers)) return null;
-
-    let match = rawCustomers.find(c =>
-      normalizeCustomerLookupValue(c && c.name) === name &&
-      (!sp || normalizeCustomerLookupValue(c && c.salesPerson) === sp)
-    );
-
-    if (!match) {
-      match = rawCustomers.find(c =>
-        normalizeCustomerLookupValue(c && c.name) === name
-      );
-    }
-    return match || null;
+    return rawCustomers.find(c => String(c.name || '').trim().toLowerCase() === name) || null;
   }
 
   function getCustomerField(customer, aliases) {
-    if (!customer || typeof customer !== 'object') return '-';
-    const wanted = aliases.map(a => String(a).toLowerCase().replace(/[^a-z0-9]/g, ''));
-
+    if (!customer) return '-';
     for (const key of Object.keys(customer)) {
-      const normalizedKey = String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (wanted.includes(normalizedKey)) {
-        const value = customer[key];
-        if (value !== null && value !== undefined && String(value).trim() !== '') {
-          return String(value).trim();
-        }
-      }
+      if (aliases.includes(key.toLowerCase())) return customer[key] || '-';
     }
     return '-';
   }
 
   function escapeHtml(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function fetchAndRenderDynamicCustomerDetails(customerName, salesPerson) {
-    const detailsBox = document.getElementById('dynamicCustomerDetailsBox');
-    if (!detailsBox) return;
-
-    const customer = findMasterCustomer(customerName, salesPerson);
-    if (!customer) {
-      detailsBox.innerHTML = '<div class="text-muted text-center py-1">Customer details not in Customers master sheet.</div>';
-      return;
-    }
-
-    let html = '<div class="fw-bold text-dark mb-1 border-bottom pb-1 small"><i class="fa fa-database me-1"></i> Customer Sheet Record:</div><div class="row g-1">';
-    const keys = Object.keys(customer);
-    keys.forEach(key => {
-      const rawValue = customer[key];
-      const textValue = (rawValue !== null && rawValue !== undefined && String(rawValue).trim() !== '') ? String(rawValue) : 'N/A';
-      html += `<div class="col-6"><span class="text-secondary">${escapeHtml(key)}:</span> <b>${escapeHtml(textValue)}</b></div>`;
-    });
+    const cust = findMasterCustomer(customerName, salesPerson);
+    const box = document.getElementById('dynamicCustomerDetailsBox');
+    if (!cust) { box.innerHTML = '<div class="text-muted text-center">No sheet record</div>'; return; }
+    let html = '<div class="row g-1">';
+    Object.keys(cust).forEach(k => { html += `<div class="col-6"><b>${k}:</b> ${cust[k]}</div>`; });
     html += '</div>';
-    detailsBox.innerHTML = html;
+    box.innerHTML = html;
   }
 
   function modalSendWhatsApp() {
     let phone = currentLeadPhone;
-    if (!phone || phone === '-') {
-      const phoneEl = document.getElementById('mCustPhone');
-      if (phoneEl) phone = phoneEl.innerText;
-    }
-
-    if (!phone || phone === '-' || phone.length < 5) {
-      alert("Phone number not available for this customer!");
-      return;
-    }
-
-    const spName = loggedInUser && loggedInUser.salesPerson ? loggedInUser.salesPerson : 'UCE Team';
-    const brandName = currentLeadBrand || document.getElementById('mBrand').innerText || 'Industrial Equipment';
-    const snoozeType = document.getElementById('modalSnoozeType') ? document.getElementById('modalSnoozeType').value : 'lead';
-
-    let customMsg = (snoozeType === 'payment')
-      ? `Hello, I am ${spName}. Following up regarding the payment status for ${brandName}. Please share an update.`
-      : `Hello, I am ${spName}. Following up on your requirement for ${brandName}. Please share your feedback.`;
-
-    window.open(`https://wa.me/91${phone.replace(/\D/g,'')}?text=${encodeURIComponent(customMsg)}`, '_blank');
+    if (!phone || phone === '-') return alert("Phone number not available!");
+    window.open(`https://wa.me/91${phone.replace(/\D/g,'')}?text=Hello,%20following%20up%20on%20your%20enquiry.`, '_blank');
   }
 
-  function modalExecuteSnooze() {
-    const activeId = document.getElementById('editEnqId') ? document.getElementById('editEnqId').value : '';
-    const snoozeType = document.getElementById('modalSnoozeType').value;
-    const snoozeDate = document.getElementById('modalSnoozeDate').value;
+  async function modalExecuteSnooze() {
+    const id = document.getElementById('editEnqId').value;
+    const type = document.getElementById('modalSnoozeType').value;
+    const date = document.getElementById('modalSnoozeDate').value;
+    if (!date) return alert("Select date");
 
-    if (!activeId || !snoozeDate) { alert("Please select date!"); return; }
-
-    google.script.run.withSuccessHandler(res => {
-      if (res && res.success) {
-        showFloatingNotification("Snooze Saved", res.message);
-        const modalEl = document.getElementById('leadDetailsModal');
-        if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
-        loadDashboardData();
-      } else {
-        alert("Error: " + res.message);
-      }
-    }).quickSnoozeEnquiry({ id: activeId, type: snoozeType, newDate: snoozeDate, user: loggedInUser ? loggedInUser.salesPerson : 'Admin' });
+    const res = await callAppsScriptApi("quickSnoozeEnquiry", { id, type, newDate: date, user: loggedInUser.salesPerson });
+    if (res && res.success) {
+      showFloatingNotification("Snooze Saved", res.message);
+      bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
+      loadDashboardData();
+    }
   }
 
-  function modalExecuteTransfer() {
-    const activeId = document.getElementById('editEnqId') ? document.getElementById('editEnqId').value : '';
+  async function modalExecuteTransfer() {
+    const id = document.getElementById('editEnqId').value;
     const targetSp = document.getElementById('modalTransferSp').value;
+    if (!targetSp) return alert("Select salesperson");
 
-    if (!activeId || !targetSp) { alert("Please select a salesperson!"); return; }
-
-    google.script.run.withSuccessHandler(res => {
-      if (res && res.success) {
-        showFloatingNotification("Lead Transferred", res.message);
-        const modalEl = document.getElementById('leadDetailsModal');
-        if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
-        loadDashboardData();
-      } else {
-        alert("Error: " + res.message);
-      }
-    }).transferLeadOwner(activeId, targetSp, loggedInUser ? loggedInUser.salesPerson : 'Admin');
+    const res = await callAppsScriptApi("transferLeadOwner", { id, targetSp, user: loggedInUser.salesPerson });
+    if (res && res.success) {
+      showFloatingNotification("Transferred", res.message);
+      bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
+      loadDashboardData();
+    }
   }
 
-  function modalOpenCustomerLedger() {
-    const custName = document.getElementById('mCustName') ? document.getElementById('mCustName').innerText : '';
-    if (!custName || custName === '-') { alert("Customer name not found!"); return; }
-
-    let ledgerModalEl = document.getElementById('dynamicCustomerLedgerModal');
-    if (!ledgerModalEl) {
-      const modalDiv = document.createElement('div');
-      modalDiv.id = 'dynamicCustomerLedgerModal';
-      modalDiv.className = 'modal fade';
-      modalDiv.tabIndex = '-1';
-      modalDiv.innerHTML = `
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-          <div class="modal-content">
-            <div class="modal-header bg-dark text-white py-2">
-              <h6 class="modal-title fw-bold">Customer Interaction Ledger: <span id="ledgerCustTitle"></span></h6>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <div class="table-responsive" style="max-height: 380px;">
-                <table class="table table-sm table-bordered small">
-                  <thead class="table-light">
-                    <tr>
-                      <th>Enq ID</th><th>Date</th><th>Customer</th><th>Description</th><th>Brand</th><th>Value (₹)</th><th>Status</th><th>Payment</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dynamicLedgerTbody"><tr><td colspan="8" class="text-center text-muted">Loading history...</td></tr></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modalDiv);
-      ledgerModalEl = modalDiv;
-    }
-
-    document.getElementById('ledgerCustTitle').innerText = custName;
-    new bootstrap.Modal(ledgerModalEl).show();
-
-    google.script.run.withSuccessHandler(ledger => {
-      const tbody = document.getElementById('dynamicLedgerTbody');
-      if (ledger && ledger.length > 0) {
-        let rows = '';
-        ledger.forEach(l => {
-          rows += `<tr><td><b>${escapeHtml(l.id)}</b></td><td>${escapeHtml(l.date)}</td><td><b>${escapeHtml(l.customer || custName)}</b></td><td>${escapeHtml(l.description)}</td><td>${escapeHtml(l.brand)}</td><td>₹${Number(l.value || 0).toLocaleString()}</td><td><span class="badge bg-primary">${escapeHtml(l.status)}</span></td><td><span class="badge bg-secondary">${escapeHtml(l.paymentStatus)}</span></td></tr>`;
-        });
-        tbody.innerHTML = rows;
-      } else {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No prior history found.</td></tr>';
-      }
-    }).getCustomerLedgerHistory(custName);
-  }
-
-  function saveFullLeadDetailsUpdate() {
-    const stVal = document.getElementById('editStatus').value;
-    const lostReasonVal = document.getElementById('editLostReason').value;
-
-    if (stVal === 'Lost' && !lostReasonVal.trim()) {
-      showAlert('Lost Reason is required when marking lead as Lost!', 'danger');
-      return;
-    }
-
-    const saveBtn = document.getElementById('saveUpdateBtn');
-    saveBtn.disabled = true; saveBtn.innerText = "Saving to Google Sheet...";
+  async function saveFullLeadDetailsUpdate() {
+    const st = document.getElementById('editStatus').value;
+    if (st === 'Lost' && !document.getElementById('editLostReason').value.trim()) return alert("Lost reason required");
 
     const payload = {
       id: document.getElementById('editEnqId').value,
       approxValue: document.getElementById('editApproxValue').value,
-      status: stVal,
+      status: st,
       paymentStatus: document.getElementById('editPaymentStatus').value,
       leadFollowup: document.getElementById('editLeadFollowup').value,
       paymentTerms: document.getElementById('editPaymentTerms').value,
       paymentFollowup: document.getElementById('editPaymentFollowup').value,
       dispatch: document.getElementById('editDispatch').value,
-      lostReason: lostReasonVal,
+      lostReason: document.getElementById('editLostReason').value,
       remark: document.getElementById('editRemark').value
     };
 
-    google.script.run
-      .withSuccessHandler(res => {
-        saveBtn.disabled = false; saveBtn.innerText = "Save Updates";
-        if (res && res.success) {
-          showFloatingNotification("Updated Successfully", `Enquiry ${payload.id} status updated to ${payload.status}`);
-          const modalElement = document.getElementById('leadDetailsModal');
-          const modalInstance = bootstrap.Modal.getInstance(modalElement);
-          if (modalInstance) modalInstance.hide();
-          loadDashboardData();
-        } else {
-          showAlert("Failed: " + res.message, "danger");
-        }
-      })
-      .withFailureHandler(err => {
-        saveBtn.disabled = false; saveBtn.innerText = "Save Updates";
-        showAlert("Update Error: " + err.message, "danger");
-      })
-      .updateEnquiryFull(payload);
+    const res = await callAppsScriptApi("updateEnquiryFull", payload);
+    if (res && res.success) {
+      showFloatingNotification("Updated", res.message);
+      bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
+      loadDashboardData();
+    }
   }
 
   function renderCustomerDirectoryTable() {
@@ -2100,100 +1744,55 @@
   }
 
   function applyCustomerDirectoryFilters() {
-    const search = document.getElementById('custDirectorySearch') ? document.getElementById('custDirectorySearch').value.trim().toLowerCase() : '';
-    const termFilter = document.getElementById('custCreditFilter') ? document.getElementById('custCreditFilter').value : 'ALL';
-
+    const search = document.getElementById('custDirectorySearch').value.toLowerCase();
+    const term = document.getElementById('custCreditFilter').value;
     let list = rawCustomers || [];
 
-    if (search) {
-      list = list.filter(c => 
-        String(c.name || '').toLowerCase().includes(search) || 
-        String(c.contactPerson || '').toLowerCase().includes(search) || 
-        String(c.city || '').toLowerCase().includes(search) || 
-        String(c.mobile || '').includes(search) || 
-        String(c.salesPerson || '').toLowerCase().includes(search)
-      );
-    }
+    if (search) list = list.filter(c => String(c.name || '').toLowerCase().includes(search) || String(c.mobile || '').includes(search));
+    if (term !== 'ALL') list = list.filter(c => String(c.defaultTerms || '0') === term);
 
-    if (termFilter !== 'ALL') {
-      list = list.filter(c => String(c.defaultTerms || '0') === String(termFilter));
-    }
-
-    const countBadge = document.getElementById('custDirectoryCountBadge');
-    if (countBadge) countBadge.innerText = `Showing ${list.length} Customer(s)`;
-
-    const tbody = document.getElementById('customerDirectoryBody');
-    if (!tbody) return;
-
-    if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No customers found.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = list.map(c => `
+    document.getElementById('custDirectoryCountBadge').innerText = `Showing ${list.length} Customers`;
+    document.getElementById('customerDirectoryBody').innerHTML = list.map(c => `
       <tr>
         <td><b>${escapeHtml(c.name)}</b></td>
         <td>${escapeHtml(c.contactPerson || '-')}</td>
-        <td>${escapeHtml(c.mobile || '-')}<br><small class="text-muted">${escapeHtml(c.email || '-')}</small></td>
+        <td>${escapeHtml(c.mobile || '-')}</td>
         <td>${escapeHtml(c.city || '-')}</td>
-        <td><span class="badge bg-secondary">${escapeHtml(c.salesPerson || '-')}</span></td>
-        <td class="fw-bold text-success">₹${Number(c.creditLimit || 0).toLocaleString()}</td>
-        <td><span class="badge bg-info text-dark">${c.defaultTerms && c.defaultTerms !== '0' ? c.defaultTerms + ' Days' : '100% Advance'}</span></td>
-        <td class="text-center">
-          <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" onclick="openEditCustomerProfileModal('${escapeHtml(c.name)}')">
-            <i class="fa fa-edit me-1"></i>Edit Profile
-          </button>
-        </td>
+        <td>${escapeHtml(c.salesPerson || '-')}</td>
+        <td class="text-success">₹${Number(c.creditLimit || 0).toLocaleString()}</td>
+        <td>${c.defaultTerms || '0'} Days</td>
+        <td class="text-center"><button class="btn btn-sm btn-outline-primary py-0" onclick="openEditCustomerProfileModal('${escapeHtml(c.name)}')">Edit</button></td>
       </tr>
-    `).join('');
+    `).join('') || '<tr><td colspan="8" class="text-center text-muted">No customers found</td></tr>';
   }
 
-  function openEditCustomerProfileModal(custName) {
-    const cust = rawCustomers.find(c => c.name.toLowerCase() === custName.toLowerCase());
-    if (!cust) return;
+  function openNewCustomerProfileModal() {
+    document.getElementById('customerProfileModalTitle').innerText = "Add Customer Profile";
+    document.getElementById('custModalName').value = '';
+    document.getElementById('custModalName').readOnly = false;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('customerProfileModal')).show();
+  }
 
-    document.getElementById('customerProfileModalTitle').innerText = "Edit Customer Profile - " + cust.name;
+  function openEditCustomerProfileModal(name) {
+    const cust = rawCustomers.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (!cust) return;
+    document.getElementById('customerProfileModalTitle').innerText = "Edit Customer";
     document.getElementById('custModalName').value = cust.name;
     document.getElementById('custModalName').readOnly = true;
-    document.getElementById('custModalSp').value = cust.salesPerson || (loggedInUser ? loggedInUser.salesPerson : '');
+    document.getElementById('custModalSp').value = cust.salesPerson || '';
     document.getElementById('custModalContact').value = cust.contactPerson || '';
     document.getElementById('custModalCity').value = cust.city || '';
     document.getElementById('custModalPhone').value = cust.mobile || '';
     document.getElementById('custModalEmail').value = cust.email || '';
     document.getElementById('custModalCreditLimit').value = cust.creditLimit || 0;
-    document.getElementById('custModalTerms').value = cust.defaultTerms !== undefined ? cust.defaultTerms : '0';
-
-    const modalEl = document.getElementById('customerProfileModal');
-    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    document.getElementById('custModalTerms').value = cust.defaultTerms || '0';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('customerProfileModal')).show();
   }
 
-  function openNewCustomerProfileModal() {
-    document.getElementById('customerProfileModalTitle').innerText = "Add New Customer Profile";
-    document.getElementById('custModalName').value = '';
-    document.getElementById('custModalName').readOnly = false;
-    document.getElementById('custModalSp').value = loggedInUser ? loggedInUser.salesPerson : '';
-    document.getElementById('custModalContact').value = '';
-    document.getElementById('custModalCity').value = '';
-    document.getElementById('custModalPhone').value = '';
-    document.getElementById('custModalEmail').value = '';
-    document.getElementById('custModalCreditLimit').value = '0';
-    document.getElementById('custModalTerms').value = '0';
-
-    const modalEl = document.getElementById('customerProfileModal');
-    bootstrap.Modal.getOrCreateInstance(modalEl).show();
-  }
-
-  function submitCustomerProfileSave() {
-    const name = document.getElementById('custModalName').value.trim();
-    if (!name) { alert("Customer Name is required!"); return; }
-
-    const saveBtn = document.getElementById('saveCustProfileBtn');
-    saveBtn.disabled = true;
-    saveBtn.innerText = 'Saving...';
-
+  async function submitCustomerProfileSave() {
     const payload = {
-      name: name,
-      salesPerson: document.getElementById('custModalSp').value.trim() || loggedInUser.salesPerson,
+      name: document.getElementById('custModalName').value.trim(),
+      salesPerson: document.getElementById('custModalSp').value.trim(),
       contactPerson: document.getElementById('custModalContact').value.trim(),
       city: document.getElementById('custModalCity').value.trim(),
       mobile: document.getElementById('custModalPhone').value.trim(),
@@ -2202,25 +1801,12 @@
       defaultTerms: document.getElementById('custModalTerms').value
     };
 
-    google.script.run
-      .withSuccessHandler(res => {
-        saveBtn.disabled = false;
-        saveBtn.innerText = 'Save to Customers Sheet';
-        if (res && res.success) {
-          showFloatingNotification("Customer Saved", res.message);
-          const modalEl = document.getElementById('customerProfileModal');
-          bootstrap.Modal.getInstance(modalEl).hide();
-          fetchMasterData();
-        } else {
-          showAlert("Error: " + res.message, 'danger');
-        }
-      })
-      .withFailureHandler(err => {
-        saveBtn.disabled = false;
-        saveBtn.innerText = 'Save to Customers Sheet';
-        showAlert("Save failed: " + err.message, 'danger');
-      })
-      .saveCustomerProfileFull(payload);
+    const res = await callAppsScriptApi("saveCustomerProfileFull", payload);
+    if (res && res.success) {
+      showFloatingNotification("Saved", res.message);
+      bootstrap.Modal.getInstance(document.getElementById('customerProfileModal')).hide();
+      fetchMasterData();
+    }
   }
 
   function changeCalendarMonth(step) {
@@ -2236,131 +1822,60 @@
 
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
-    const selectedSp = document.getElementById('actFilterSalesPerson') ? document.getElementById('actFilterSalesPerson').value : 'ALL';
+    const selectedSp = document.getElementById('actFilterSalesPerson').value;
 
     const grid = document.getElementById('calendarDays');
-    if (!grid) return;
     grid.innerHTML = '';
-
-    for (let i = 0; i < firstDay; i++) {
-      grid.innerHTML += `<div class="cal-day empty"></div>`;
-    }
+    for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="cal-day empty"></div>`;
 
     for (let d = 1; d <= totalDays; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const dayActs = globalActivities.filter(a => a.date === dateStr && (selectedSp === 'ALL' || a.salesPerson === selectedSp));
-      
       const calls = dayActs.filter(a => a.type === 'Call').length;
       const visits = dayActs.filter(a => a.type === 'Visit').length;
 
-      let badgesHtml = '';
-      if (calls > 0) badgesHtml += `<span class="badge badge-call d-block mt-1">📞 ${calls} Call${calls > 1 ? 's' : ''}</span>`;
-      if (visits > 0) badgesHtml += `<span class="badge badge-visit d-block mt-1">🚗 ${visits} Visit${visits > 1 ? 's' : ''}</span>`;
+      let badges = '';
+      if (calls > 0) badges += `<span class="badge badge-call d-block mt-1">📞 ${calls} Calls</span>`;
+      if (visits > 0) badges += `<span class="badge badge-visit d-block mt-1">🚗 ${visits} Visits</span>`;
 
-      grid.innerHTML += `
-        <div class="cal-day" onclick="openDateActivityModal('${dateStr}')">
-          <span class="day-num">${d}</span>
-          ${badgesHtml}
-          <i class="fa fa-plus add-hint-icon"></i>
-        </div>
-      `;
+      grid.innerHTML += `<div class="cal-day" onclick="openDateActivityModal('${dateStr}')"><span class="day-num">${d}</span>${badges}</div>`;
     }
-
     renderMonthlyCustomerMatrix();
   }
 
   function openDateActivityModal(dateStr) {
     selectedActivityDateStr = dateStr;
-    document.getElementById('modalDateTitle').innerHTML = `<i class="fa fa-calendar-day me-2"></i>Date: ${dateStr}`;
-    
-    document.getElementById('modalActCustomer').value = '';
-    document.getElementById('modalActRemark').value = '';
-    document.getElementById('typeCall').checked = true;
-    document.getElementById('statusYes').checked = true;
-
-    const activeSpFilter = document.getElementById('actFilterSalesPerson').value;
-    const spInput = document.getElementById('modalActSalesPerson');
-    if (activeSpFilter !== 'ALL') {
-      spInput.value = activeSpFilter;
-    } else if (loggedInUser && loggedInUser.salesPerson) {
-      spInput.value = loggedInUser.salesPerson;
-    }
-    
-    filterCustomerDropdownForActivity();
+    document.getElementById('modalDateTitle').innerHTML = `Log Activity: ${dateStr}`;
     renderModalActivitiesList();
-
-    const modalElement = document.getElementById('dateActivityModal');
-    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('dateActivityModal')).show();
   }
 
   function renderModalActivitiesList() {
-    const selectedSp = document.getElementById('actFilterSalesPerson').value;
-    const acts = globalActivities.filter(a => a.date === selectedActivityDateStr && (selectedSp === 'ALL' || a.salesPerson === selectedSp));
-    const tbody = document.getElementById('modalActivityTable');
-
-    if (acts.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">No activity logged yet for this date.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = acts.map(a => `
-      <tr>
-        <td><b>${escapeHtml(a.customer)}</b></td>
-        <td>${escapeHtml(a.salesPerson)}</td>
-        <td><span class="badge ${a.type === 'Call' ? 'bg-info text-dark' : 'bg-success'}">${escapeHtml(a.type)}</span></td>
-        <td><span class="badge ${a.status === 'Yes' ? 'bg-success' : 'bg-danger'}">${a.status === 'Yes' ? 'Connected' : 'Failed'}</span></td>
-        <td><small class="text-muted">${escapeHtml(a.remark || '-')}</small></td>
-      </tr>
-    `).join('');
+    const acts = globalActivities.filter(a => a.date === selectedActivityDateStr);
+    document.getElementById('modalActivityTable').innerHTML = acts.map(a => `
+      <tr><td><b>${escapeHtml(a.customer)}</b></td><td>${escapeHtml(a.salesPerson)}</td><td><span class="badge bg-info">${a.type}</span></td><td>${a.remark || '-'}</td></tr>
+    `).join('') || '<tr><td colspan="4" class="text-center text-muted">No activity</td></tr>';
   }
 
-  function submitModalActivityRecord() {
-    const sp = document.getElementById('modalActSalesPerson').value.trim();
-    const cust = document.getElementById('modalActCustomer').value.trim();
-    const type = document.querySelector('input[name="modalInteractionType"]:checked').value;
-    const status = document.querySelector('input[name="modalInteractionStatus"]:checked').value;
-    const remark = document.getElementById('modalActRemark').value.trim();
-
-    if (!cust) {
-      alert("Please select or enter customer name!");
-      return;
-    }
-
-    const saveBtn = document.getElementById('saveActivityBtn');
-    saveBtn.disabled = true;
-    saveBtn.innerText = 'Saving...';
-
-    const activityData = {
+  async function submitModalActivityRecord() {
+    const payload = {
       date: selectedActivityDateStr,
-      salesPerson: sp || loggedInUser.salesPerson,
-      customer: cust,
-      type: type,
-      status: status,
-      remark: remark,
-      latitude: userGeoCoords ? userGeoCoords.latitude : '',
-      longitude: userGeoCoords ? userGeoCoords.longitude : ''
+      salesPerson: document.getElementById('modalActSalesPerson').value.trim() || loggedInUser.salesPerson,
+      customer: document.getElementById('modalActCustomer').value.trim(),
+      type: document.querySelector('input[name="modalInteractionType"]:checked').value,
+      status: document.querySelector('input[name="modalInteractionStatus"]:checked').value,
+      remark: document.getElementById('modalActRemark').value.trim()
     };
+    if (!payload.customer) return alert("Customer required");
 
-    google.script.run
-      .withSuccessHandler(res => {
-        saveBtn.disabled = false;
-        saveBtn.innerText = 'Save Entry';
-        if (res && res.success) {
-          showFloatingNotification("Activity Logged", `${type} recorded for ${cust}`);
-          document.getElementById('modalActCustomer').value = '';
-          document.getElementById('modalActRemark').value = '';
-          loadDashboardData();
-          setTimeout(renderModalActivitiesList, 500);
-        } else {
-          showAlert('Error: ' + res.message, 'danger');
-        }
-      })
-      .withFailureHandler(err => {
-        saveBtn.disabled = false;
-        saveBtn.innerText = 'Save Entry';
-        showAlert('Activity Log Failed: ' + err.message, 'danger');
-      })
-      .saveActivity(activityData);
+    const res = await callAppsScriptApi("saveActivity", payload);
+    if (res && res.success) {
+      showFloatingNotification("Saved", res.message);
+      document.getElementById('modalActCustomer').value = '';
+      document.getElementById('modalActRemark').value = '';
+      loadDashboardData();
+      setTimeout(renderModalActivitiesList, 400);
+    }
   }
 
   function renderMonthlyCustomerMatrix() {
@@ -2371,152 +1886,76 @@
 
     const monthActs = globalActivities.filter(a => a.date.startsWith(monthPrefix) && (selectedSp === 'ALL' || a.salesPerson === selectedSp));
     const matrixMap = {};
-
-    let totalCalls = 0;
-    let totalVisits = 0;
+    let calls = 0, visits = 0;
 
     monthActs.forEach(a => {
-      if (!matrixMap[a.customer]) {
-        matrixMap[a.customer] = { salesPerson: a.salesPerson, calls: 0, visits: 0, latestRemark: a.remark };
-      }
-      if (a.type === 'Call') { matrixMap[a.customer].calls++; totalCalls++; }
-      if (a.type === 'Visit') { matrixMap[a.customer].visits++; totalVisits++; }
-      if (a.remark) matrixMap[a.customer].latestRemark = a.remark;
+      if (!matrixMap[a.customer]) matrixMap[a.customer] = { sp: a.salesPerson, calls: 0, visits: 0, remark: a.remark };
+      if (a.type === 'Call') { matrixMap[a.customer].calls++; calls++; }
+      if (a.type === 'Visit') { matrixMap[a.customer].visits++; visits++; }
     });
 
-    const summaryEl = document.getElementById('matrixTotalSummary');
-    if (summaryEl) summaryEl.innerText = `Total: ${totalCalls} Calls | ${totalVisits} Visits`;
-    
-    const tbody = document.getElementById('monthlyMatrixTable');
-    if (!tbody) return;
-    const keys = Object.keys(matrixMap);
-
-    if (keys.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No activity records found for this month</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = keys.map(k => `
-      <tr>
-        <td><b>${escapeHtml(k)}</b></td>
-        <td>${escapeHtml(matrixMap[k].salesPerson)}</td>
-        <td class="text-center fw-bold text-primary">${matrixMap[k].calls}</td>
-        <td class="text-center fw-bold text-success">${matrixMap[k].visits}</td>
-        <td class="text-center fw-bold text-dark">${matrixMap[k].calls + matrixMap[k].visits}</td>
-        <td class="text-muted small">${escapeHtml(matrixMap[k].latestRemark || '-')}</td>
-      </tr>
-    `).join('');
+    document.getElementById('matrixTotalSummary').innerText = `Total: ${calls} Calls | ${visits} Visits`;
+    document.getElementById('monthlyMatrixTable').innerHTML = Object.keys(matrixMap).map(k => `
+      <tr><td><b>${k}</b></td><td>${matrixMap[k].sp}</td><td class="text-center">${matrixMap[k].calls}</td><td class="text-center">${matrixMap[k].visits}</td><td class="text-center">${matrixMap[k].calls + matrixMap[k].visits}</td><td>${matrixMap[k].remark || '-'}</td></tr>
+    `).join('') || '<tr><td colspan="6" class="text-center text-muted">No records</td></tr>';
   }
 
   function renderLostEnquiriesTable(enquiries) {
-    const lostTbody = document.getElementById('lostTableBody');
-    const lostList = enquiries.filter(e => String(e.status).toLowerCase() === 'lost');
-
-    if (lostList && lostList.length > 0) {
-      let rows = '';
-      lostList.forEach(item => {
-        rows += `<tr><td class="fw-bold">${item.id}</td><td>${item.date}</td><td>${item.customer}</td><td>${item.salesPerson}</td><td>₹${Number(item.value || 0).toLocaleString()}</td><td class="text-danger fw-bold">${item.lostReason || item.remark || 'N/A'}</td></tr>`;
-      });
-      lostTbody.innerHTML = rows;
-    } else {
-      lostTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No Lost Enquiries Found</td></tr>';
-    }
+    const lost = enquiries.filter(e => String(e.status).toLowerCase() === 'lost');
+    document.getElementById('lostTableBody').innerHTML = lost.map(e => `
+      <tr><td><b>${e.id}</b></td><td>${e.date}</td><td>${e.customer}</td><td>${e.salesPerson}</td><td>₹${Number(e.value || 0).toLocaleString()}</td><td class="text-danger">${e.lostReason || '-'}</td></tr>
+    `).join('') || '<tr><td colspan="6" class="text-center text-muted">No lost enquiries</td></tr>';
   }
 
-  function renderPowerBiDashboard() {
+  async function renderPowerBiDashboard() {
     if (!globalEnquiries) return;
     const reportType = document.getElementById('powerBiReportSelect').value;
 
-    let wonValue = 0, pipelineValue = 0, lostValue = 0;
+    let won = 0, pipeline = 0, lost = 0;
     globalEnquiries.forEach(e => {
-      let val = Number(e.value) || 0, st = String(e.status).toLowerCase();
-      if (st === 'won') wonValue += val;
-      else if (st === 'lost') lostValue += val;
-      else pipelineValue += val;
+      let v = Number(e.value) || 0, s = String(e.status).toLowerCase();
+      if (s === 'won') won += v; else if (s === 'lost') lost += v; else pipeline += v;
     });
 
     document.getElementById('statTotalEnq').innerText = globalEnquiries.length;
-    document.getElementById('statWonValue').innerText = '₹' + wonValue.toLocaleString();
-    document.getElementById('statPipelineValue').innerText = '₹' + pipelineValue.toLocaleString();
-    document.getElementById('statLostValue').innerText = '₹' + lostValue.toLocaleString();
+    document.getElementById('statWonValue').innerText = '₹' + won.toLocaleString();
+    document.getElementById('statPipelineValue').innerText = '₹' + pipeline.toLocaleString();
+    document.getElementById('statLostValue').innerText = '₹' + lost.toLocaleString();
 
-    google.script.run.withSuccessHandler(res => {
-      if (!res || !res.success) return;
-      const ctx = document.getElementById('powerBiCanvas');
-      if (powerBiChartInstance) powerBiChartInstance.destroy();
+    const res = await callAppsScriptApi("getAdvancedAnalyticsData", { user: loggedInUser });
+    if (!res || !res.success) return;
 
-      let chartConfig = { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false } };
+    const ctx = document.getElementById('powerBiCanvas');
+    if (powerBiChartInstance) powerBiChartInstance.destroy();
 
-      if (reportType === 'funnel') {
-        document.getElementById('powerBiChartTitle').innerText = "📊 Sales Funnel & Pipeline Velocity (Stage-wise Value)";
-        const funnel = res.funnel;
-        chartConfig.data = {
-          labels: ['New Lead', 'Hot Lead', 'Live', 'Won', 'Lost'],
-          datasets: [{
-            label: 'Stage Value (₹)',
-            data: [funnel['New Lead'].value, funnel['Hot lead'].value, funnel['Live'].value, funnel['Won'].value, funnel['Lost'].value],
-            backgroundColor: ['#6c757d', '#ffc107', '#0dcaf0', '#198754', '#dc3545']
-          }]
-        };
-      } else if (reportType === 'brands') {
-        document.getElementById('powerBiChartTitle').innerText = "🏷️ Brand Performance Matrix (Won vs Lost Revenue)";
-        const brands = res.brands;
-        const labels = Object.keys(brands);
-        chartConfig.data = {
-          labels: labels,
-          datasets: [
-            { label: 'Won Revenue (₹)', data: labels.map(l => brands[l].wonValue), backgroundColor: '#198754' },
-            { label: 'Lost Revenue (₹)', data: labels.map(l => brands[l].lostValue), backgroundColor: '#dc3545' }
-          ]
-        };
-      } else if (reportType === 'marketing') {
-        document.getElementById('powerBiChartTitle').innerText = "🎯 Lead Source & Marketing ROI (Revenue by Mode)";
-        const modes = res.modes;
-        const labels = Object.keys(modes);
-        chartConfig.type = 'doughnut';
-        chartConfig.data = {
-          labels: labels,
-          datasets: [{ data: labels.map(l => modes[l].wonValue), backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#dc3545', '#6c757d'] }]
-        };
-      } else if (reportType === 'productivity') {
-        document.getElementById('powerBiChartTitle').innerText = "⚡ Team Activity vs Revenue Correlation";
-        const sps = res.teamProductivity;
-        const labels = Object.keys(sps);
-        chartConfig.data = {
-          labels: labels,
-          datasets: [{ label: 'Won Revenue (₹)', data: labels.map(l => sps[l].wonRevenue), backgroundColor: '#198754' }]
-        };
-      } else if (reportType === 'cashflow') {
-        document.getElementById('powerBiChartTitle').innerText = "💰 Cash Flow & Payment Aging Tracker";
-        const pays = res.payments;
-        chartConfig.type = 'pie';
-        chartConfig.data = {
-          labels: ['Fully Paid', 'Advance Received', 'Partial', 'Pending', 'Credit'],
-          datasets: [{
-            data: [
-              pays['Fully Paid'] ? pays['Fully Paid'].value : 0, 
-              pays['Advance Received'] ? pays['Advance Received'].value : 0, 
-              pays['Partial'] ? pays['Partial'].value : 0, 
-              pays['Pending'] ? pays['Pending'].value : 0, 
-              pays['Credit'] ? pays['Credit'].value : 0
-            ],
-            backgroundColor: ['#198754', '#0dcaf0', '#ffc107', '#dc3545', '#0f172a']
-          }]
-        };
-      }
+    let chartConfig = { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false } };
 
-      powerBiChartInstance = new Chart(ctx, chartConfig);
-    }).getAdvancedAnalyticsData(loggedInUser);
+    if (reportType === 'funnel') {
+      const f = res.funnel;
+      chartConfig.data = { labels: ['New', 'Hot', 'Live', 'Won', 'Lost'], datasets: [{ label: 'Value (₹)', data: [f['New Lead'].value, f['Hot lead'].value, f['Live'].value, f['Won'].value, f['Lost'].value], backgroundColor: ['#6c757d', '#ffc107', '#0dcaf0', '#198754', '#dc3545'] }] };
+    } else if (reportType === 'brands') {
+      const b = res.brands, labels = Object.keys(b);
+      chartConfig.data = { labels: labels, datasets: [{ label: 'Won (₹)', data: labels.map(l => b[l].wonValue), backgroundColor: '#198754' }] };
+    } else if (reportType === 'marketing') {
+      const m = res.modes, labels = Object.keys(m);
+      chartConfig.type = 'doughnut';
+      chartConfig.data = { labels: labels, datasets: [{ data: labels.map(l => m[l].wonValue), backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#dc3545'] }] };
+    } else if (reportType === 'productivity') {
+      const sps = res.teamProductivity, labels = Object.keys(sps);
+      chartConfig.data = { labels: labels, datasets: [{ label: 'Won (₹)', data: labels.map(l => sps[l].wonRevenue), backgroundColor: '#198754' }] };
+    } else if (reportType === 'cashflow') {
+      const p = res.payments;
+      chartConfig.type = 'pie';
+      chartConfig.data = { labels: ['Paid', 'Advance', 'Partial', 'Pending', 'Credit'], datasets: [{ data: [p['Fully Paid']?.value || 0, p['Advance Received']?.value || 0, p['Partial']?.value || 0, p['Pending']?.value || 0, p['Credit']?.value || 0], backgroundColor: ['#198754', '#0dcaf0', '#ffc107', '#dc3545', '#0f172a'] }] };
+    }
+    powerBiChartInstance = new Chart(ctx, chartConfig);
   }
 
   function showTab(tabName, saveState = true) {
     ['enquiry', 'customers', 'analytics', 'lost', 'activity'].forEach(t => {
-      const moduleEl = document.getElementById(t + 'Module');
-      const btnEl = document.getElementById('tab-' + t + '-btn');
-      if (moduleEl) moduleEl.classList.toggle('d-none', t !== tabName);
-      if (btnEl) btnEl.classList.toggle('active', t === tabName);
+      document.getElementById(t + 'Module').classList.toggle('d-none', t !== tabName);
+      document.getElementById('tab-' + t + '-btn').classList.toggle('active', t === tabName);
     });
-
     if (tabName === 'customers') renderCustomerDirectoryTable();
     if (tabName === 'analytics') renderPowerBiDashboard();
     if (tabName === 'activity') renderActivityCalendarAndMatrix();
@@ -2524,78 +1963,27 @@
   }
 
   function logout() {
-    localStorage.removeItem('sales_portal_session');
-    localStorage.removeItem('active_portal_tab');
-    loggedInUser = null;
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('loginScreen').style.display = 'flex';
+    localStorage.clear();
+    location.reload();
   }
 
   function showAlert(msg, type) {
     const alertBox = document.getElementById('alertBox');
     document.getElementById('alertMsg').innerText = msg;
-    alertBox.className = `alert alert-${type === 'warning' ? 'warning' : (type === 'success' ? 'success' : 'danger')} alert-dismissible fade show fw-bold`;
+    alertBox.className = `alert alert-${type} alert-dismissible fade show fw-bold`;
     alertBox.classList.remove('d-none');
-    setTimeout(() => hideAlert(), 6000);
+    setTimeout(() => alertBox.classList.add('d-none'), 5000);
   }
 
-  function hideAlert() {
-    const alertBox = document.getElementById('alertBox');
-    if (alertBox) alertBox.classList.add('d-none');
-  }
-
-  function loadSidebarTargetInfo() {
+  async function loadSidebarTargetInfo() {
     if (!loggedInUser) return;
-
-    const role = String(loggedInUser.role || '').toLowerCase();
-    const isAdmin = role.indexOf('admin') > -1;
-    const isManager = role.indexOf('manager') > -1;
-
-    let targetSp;
-    if (isManager) {
-      targetSp = 'TEAM';
-    } else if (isAdmin) {
-      const filterEl = document.getElementById('filterSalesPerson');
-      targetSp = (filterEl && filterEl.value) ? filterEl.value : 'ALL';
-    } else {
-      targetSp = loggedInUser.salesPerson;
+    const res = await callAppsScriptApi("getSalespersonTargetInfo", { targetSp: loggedInUser.salesPerson, user: loggedInUser });
+    if (res) {
+      document.getElementById('mTargetText').innerHTML = `₹${(res.monthlyAchieved||0).toLocaleString()} / ₹${(res.monthlyTarget||0).toLocaleString()}`;
+      document.getElementById('mProgressBar').style.width = Math.min(res.monthlyPct||0, 100) + '%';
+      document.getElementById('mPctText').innerText = (res.monthlyPct||0) + '% Done';
+      document.getElementById('mBalanceText').innerText = 'Bal: ₹' + (res.monthlyBalance||0).toLocaleString();
     }
-
-    if (!targetSp) return;
-
-    google.script.run
-      .withSuccessHandler(res => {
-        if (!res) return;
-
-        const mTarget = res.monthlyTarget || 0;
-        const mAchieved = res.monthlyAchieved || 0;
-        const mBalance = res.monthlyBalance || 0;
-        const mPct = res.monthlyPct || 0;
-        document.getElementById('mTargetText').innerHTML = `₹${mAchieved.toLocaleString()} / ₹${mTarget.toLocaleString()}`;
-        document.getElementById('mProgressBar').style.width = Math.min(mPct, 100) + '%';
-        document.getElementById('mPctText').innerText = mPct + '% Done';
-        document.getElementById('mBalanceText').innerText = 'Bal: ₹' + mBalance.toLocaleString();
-
-        const qTarget = res.quarterlyTarget || 0;
-        const qAchieved = res.quarterlyAchieved || 0;
-        const qBalance = res.quarterlyBalance || 0;
-        const qPct = res.quarterlyPct || 0;
-        document.getElementById('qTargetText').innerHTML = `₹${qAchieved.toLocaleString()} / ₹${qTarget.toLocaleString()}`;
-        document.getElementById('qProgressBar').style.width = Math.min(qPct, 100) + '%';
-        document.getElementById('qPctText').innerText = qPct + '% Done';
-        document.getElementById('qBalanceText').innerText = 'Bal: ₹' + qBalance.toLocaleString();
-
-        const aTarget = res.annualTarget || 0;
-        const aAchieved = res.annualAchieved || 0;
-        const aBalance = res.annualBalance || 0;
-        const aPct = res.annualPct || 0;
-        document.getElementById('aTargetText').innerHTML = `₹${aAchieved.toLocaleString()} / ₹${aTarget.toLocaleString()}`;
-        document.getElementById('aProgressBar').style.width = Math.min(aPct, 100) + '%';
-        document.getElementById('aPctText').innerText = aPct + '% Done';
-        document.getElementById('aBalanceText').innerText = 'Bal: ₹' + aBalance.toLocaleString();
-      })
-      .getSalespersonTargetInfo(targetSp, loggedInUser);
   }
 </script>
 
