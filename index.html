@@ -19,6 +19,7 @@
       font-size: 0.88rem;
       user-select: none;
       -webkit-user-select: none;
+      touch-action: pan-y !important;
       overscroll-behavior: none !important;
       -webkit-overscroll-behavior: none !important;
     }
@@ -39,12 +40,12 @@
     }
     .app-main-content {
       flex: 1 1 auto;
-      overflow-y: auto !important;
-      overflow-x: hidden !important;
+      overflow-y: scroll !important;
       -webkit-overflow-scrolling: touch !important;
       padding: 12px;
       position: relative;
-      overscroll-behavior-y: contain !important;
+      touch-action: pan-y !important;
+      overscroll-behavior-y: none !important;
     }
     .scroll-buttons-container {
       position: fixed;
@@ -130,9 +131,44 @@
     .brand-item-hover:hover {
       background-color: #f1f5f9;
     }
+
+    /* FLOATING IN-APP NOTIFICATION BANNER */
+    #floatingNotificationBanner {
+      position: fixed;
+      top: -120px;
+      left: 12px;
+      right: 12px;
+      z-index: 10000;
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+    }
+    #floatingNotificationBanner.show {
+      top: 12px;
+    }
   </style>
 </head>
 <body>
+
+<!-- FLOATING IN-APP NOTIFICATION POPUP -->
+<div id="floatingNotificationBanner" onclick="dismissFloatingBanner()">
+  <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; min-width: 38px;">
+    <i class="fa fa-bell fa-lg"></i>
+  </div>
+  <div class="flex-grow-1 text-truncate">
+    <div class="fw-bold extra-small text-warning" id="floatBannerTitle">Notification</div>
+    <div class="small text-white text-truncate" id="floatBannerMsg">Message</div>
+  </div>
+  <button type="button" class="btn-close btn-close-white extra-small" onclick="event.stopPropagation(); dismissFloatingBanner();"></button>
+</div>
 
 <!-- LOGIN OVERLAY -->
 <div id="loginScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
@@ -767,7 +803,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // PULL-TO-REFRESH PREVENTION (MOBILE TOUCH BLOCKER)
+  // PULL-TO-REFRESH BLOCKER
   let touchStartY = 0;
   window.addEventListener('touchstart', function(e) {
     if (e.touches && e.touches.length === 1) {
@@ -786,10 +822,9 @@
     }
   }, { passive: false });
 
-  // CONFIGURATION: APPS SCRIPT API ENDPOINT
+  // APPS SCRIPT API ENDPOINT
   const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
 
-  // GENERIC FAST API CALLER USING FETCH
   async function callAppsScriptApi(action, data = {}) {
     try {
       const response = await fetch(APPS_SCRIPT_API_URL, {
@@ -806,7 +841,33 @@
     }
   }
 
-  // PUSH NOTIFICATION SYSTEM
+  // FLOATING IN-APP POPUP ENGINE
+  let bannerTimer = null;
+  function showFloatingNotification(title, message) {
+    playNotificationChime();
+    const banner = document.getElementById('floatingNotificationBanner');
+    const titleEl = document.getElementById('floatBannerTitle');
+    const msgEl = document.getElementById('floatBannerMsg');
+
+    if (banner && titleEl && msgEl) {
+      titleEl.innerText = title;
+      msgEl.innerText = message;
+      banner.classList.add('show');
+
+      if (bannerTimer) clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(() => {
+        banner.classList.remove('show');
+      }, 5000);
+    }
+  }
+
+  function dismissFloatingBanner() {
+    const banner = document.getElementById('floatingNotificationBanner');
+    if (banner) banner.classList.remove('show');
+    if (bannerTimer) clearTimeout(bannerTimer);
+  }
+
+  // WEB NOTIFICATION SYSTEM
   function checkNotificationSupport() {
     if ('Notification' in window) {
       const btn = document.getElementById('notifEnableBtn');
@@ -820,17 +881,17 @@
 
   async function requestNotificationPermission() {
     if (!('Notification' in window)) {
-      alert("This browser does not support desktop/push notifications.");
+      showFloatingNotification("Notice", "This device does not support native notification API.");
       return;
     }
     const permission = await Notification.requestPermission();
     const btn = document.getElementById('notifEnableBtn');
     if (permission === 'granted') {
       if (btn) btn.classList.add('d-none');
-      showAlert("Push notifications activated successfully!", "success");
-      sendLocalPushNotification("UCE Sales Portal", "Push notifications are now active on your device!");
+      showFloatingNotification("Enabled", "Push notifications are now active on your device!");
+      sendLocalPushNotification("UCE Sales Portal", "Notifications configured successfully!");
     } else {
-      showAlert("Notifications were not granted.", "warning");
+      showAlert("Notification permission was denied.", "warning");
     }
   }
 
@@ -842,9 +903,7 @@
           icon: "https://unitedcontrolengg.com/wp-content/uploads/2025/06/United-Logo.png",
           badge: "https://unitedcontrolengg.com/wp-content/uploads/2025/06/United-Logo.png"
         });
-      } catch (e) {
-        console.warn("Notification error:", e);
-      }
+      } catch (e) {}
     }
   }
 
@@ -911,6 +970,7 @@
           document.getElementById('loginScreen').style.display = 'none';
           document.getElementById('loggedUserMobile').innerText = loggedInUser.salesPerson;
           fetchMasterData();
+          checkNotificationSupport();
         } else {
           document.getElementById('loginScreen').style.display = 'flex';
         }
@@ -1016,7 +1076,7 @@
 
       input.value = '';
       toggleAddNewBrandInputMob();
-      showAlert("Brand '" + res.brand + "' added!", "success");
+      showFloatingNotification("New Brand Added", `Brand "${res.brand}" is now active in master catalog.`);
     } else {
       alert("Error: " + (res ? res.message : 'Failed to add brand'));
     }
@@ -1180,15 +1240,15 @@
     const banner = document.getElementById('reminderBanner');
     const textElem = document.getElementById('reminderText');
 
-    if (banner && textElem) {
-      if (todayLeadCount > 0 || todayPayCount > 0) {
+    if (todayLeadCount > 0 || todayPayCount > 0) {
+      if (banner && textElem) {
         textElem.innerHTML = `You have <b>${todayLeadCount} Lead Follow-up(s)</b> and <b>${todayPayCount} Payment Follow-up(s)</b> scheduled for today (${todayStr}).`;
         banner.classList.remove('d-none');
-        playNotificationChime();
-        sendLocalPushNotification("Today's Reminders", `You have ${todayLeadCount} lead and ${todayPayCount} payment follow-ups today.`);
-      } else {
-        banner.classList.add('d-none');
       }
+      showFloatingNotification("Today's Reminders Alert", `📅 You have ${todayLeadCount} Lead & ${todayPayCount} Payment follow-ups scheduled today!`);
+      sendLocalPushNotification("UCE Follow-up Alert", `You have ${todayLeadCount} lead and ${todayPayCount} payment follow-ups today.`);
+    } else {
+      if (banner) banner.classList.add('d-none');
     }
   }
 
@@ -1535,7 +1595,7 @@
 
     const res = await callAppsScriptApi("quickSnoozeEnquiry", { id: activeId, type: snoozeType, newDate: snoozeDate, user: loggedInUser ? loggedInUser.salesPerson : 'Admin' });
     if (res && res.success) {
-      showAlert(res.message, 'success');
+      showFloatingNotification("Snooze Saved", res.message);
       const modalEl = document.getElementById('leadDetailsModal');
       if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboard();
@@ -1552,7 +1612,7 @@
 
     const res = await callAppsScriptApi("transferLeadOwner", { id: activeId, targetSp: targetSp, user: loggedInUser ? loggedInUser.salesPerson : 'Admin' });
     if (res && res.success) {
-      showAlert(res.message, 'success');
+      showFloatingNotification("Lead Transferred", res.message);
       const modalEl = document.getElementById('leadDetailsModal');
       if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboard();
@@ -1649,7 +1709,7 @@
     saveBtn.disabled = false; saveBtn.innerText = "SAVE ALL UPDATES";
 
     if (res && res.success) {
-      showAlert(res.message, "success");
+      showFloatingNotification("Updated Successfully", `Enquiry ${payload.id} status updated to ${payload.status}`);
       bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
       loadDashboard();
     } else {
@@ -1811,7 +1871,7 @@
     saveBtn.innerText = 'Save Activity';
 
     if (res && res.success) {
-      showAlert(res.message, 'success');
+      showFloatingNotification("Activity Logged", `${type} recorded for ${cust}`);
       document.getElementById('mobModalActCust').value = '';
       document.getElementById('mobModalActRemark').value = '';
       loadDashboard();
@@ -1880,6 +1940,7 @@
       document.getElementById('loggedUserMobile').innerText = loggedInUser.salesPerson;
       fetchMasterData();
       checkNotificationSupport();
+      showFloatingNotification("Welcome", `Logged in as ${loggedInUser.salesPerson}`);
     } else {
       errDiv.innerText = (res && res.message) ? res.message : "Invalid Username or Password";
       errDiv.classList.remove('d-none');
@@ -1926,7 +1987,7 @@
     saveBtn.disabled = false; saveBtn.innerText = "SAVE";
 
     if (res && res.success) {
-      showAlert(res.message, res.isDuplicate ? 'warning' : 'success');
+      showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
       resetMobileEnquiryForm();
       switchTab('leads');
       loadDashboard();
