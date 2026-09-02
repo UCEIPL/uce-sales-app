@@ -19,7 +19,8 @@
       font-size: 0.88rem;
       user-select: none;
       -webkit-user-select: none;
-      overscroll-behavior-y: none;
+      overscroll-behavior: none !important;
+      -webkit-overscroll-behavior: none !important;
     }
     .app-shell {
       display: flex;
@@ -38,11 +39,12 @@
     }
     .app-main-content {
       flex: 1 1 auto;
-      overflow-y: scroll !important;
-      overflow-x: auto !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
       -webkit-overflow-scrolling: touch !important;
       padding: 12px;
       position: relative;
+      overscroll-behavior-y: contain !important;
     }
     .scroll-buttons-container {
       position: fixed;
@@ -166,6 +168,7 @@
       <span class="fw-bold fs-6">UCE SALES</span>
     </div>
     <div class="d-flex align-items-center gap-2">
+      <button id="notifEnableBtn" onclick="requestNotificationPermission()" class="btn btn-sm btn-outline-warning py-0 px-2 d-none" title="Enable Notifications"><i class="fa fa-bell"></i></button>
       <span id="loggedUserMobile" class="badge bg-secondary">User</span>
       <button onclick="logout()" class="btn btn-sm btn-outline-light py-0 px-2"><i class="fa fa-power-off"></i></button>
     </div>
@@ -764,6 +767,25 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // PULL-TO-REFRESH PREVENTION (MOBILE TOUCH BLOCKER)
+  let touchStartY = 0;
+  window.addEventListener('touchstart', function(e) {
+    if (e.touches && e.touches.length === 1) {
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchmove', function(e) {
+    if (!e.touches || e.touches.length !== 1) return;
+    const touchY = e.touches[0].clientY;
+    const touchDiff = touchY - touchStartY;
+    const scroller = document.getElementById('mainScrollContainer');
+
+    if (scroller && scroller.scrollTop <= 0 && touchDiff > 0) {
+      if (e.cancelable) e.preventDefault();
+    }
+  }, { passive: false });
+
   // CONFIGURATION: APPS SCRIPT API ENDPOINT
   const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
 
@@ -781,6 +803,48 @@
     } catch (error) {
       console.error("API Call Error:", error);
       return { success: false, message: error.toString() };
+    }
+  }
+
+  // PUSH NOTIFICATION SYSTEM
+  function checkNotificationSupport() {
+    if ('Notification' in window) {
+      const btn = document.getElementById('notifEnableBtn');
+      if (Notification.permission === 'default' && btn) {
+        btn.classList.remove('d-none');
+      } else if (btn) {
+        btn.classList.add('d-none');
+      }
+    }
+  }
+
+  async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+      alert("This browser does not support desktop/push notifications.");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    const btn = document.getElementById('notifEnableBtn');
+    if (permission === 'granted') {
+      if (btn) btn.classList.add('d-none');
+      showAlert("Push notifications activated successfully!", "success");
+      sendLocalPushNotification("UCE Sales Portal", "Push notifications are now active on your device!");
+    } else {
+      showAlert("Notifications were not granted.", "warning");
+    }
+  }
+
+  function sendLocalPushNotification(title, message) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, {
+          body: message,
+          icon: "https://unitedcontrolengg.com/wp-content/uploads/2025/06/United-Logo.png",
+          badge: "https://unitedcontrolengg.com/wp-content/uploads/2025/06/United-Logo.png"
+        });
+      } catch (e) {
+        console.warn("Notification error:", e);
+      }
     }
   }
 
@@ -835,6 +899,7 @@
 
   window.addEventListener('DOMContentLoaded', function() {
     resetMobileEnquiryForm();
+    checkNotificationSupport();
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('enquiryForm').addEventListener('submit', handleSaveEnquiry);
 
@@ -1120,6 +1185,7 @@
         textElem.innerHTML = `You have <b>${todayLeadCount} Lead Follow-up(s)</b> and <b>${todayPayCount} Payment Follow-up(s)</b> scheduled for today (${todayStr}).`;
         banner.classList.remove('d-none');
         playNotificationChime();
+        sendLocalPushNotification("Today's Reminders", `You have ${todayLeadCount} lead and ${todayPayCount} payment follow-ups today.`);
       } else {
         banner.classList.add('d-none');
       }
@@ -1813,6 +1879,7 @@
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('loggedUserMobile').innerText = loggedInUser.salesPerson;
       fetchMasterData();
+      checkNotificationSupport();
     } else {
       errDiv.innerText = (res && res.message) ? res.message : "Invalid Username or Password";
       errDiv.classList.remove('d-none');
