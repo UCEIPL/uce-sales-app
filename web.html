@@ -42,9 +42,7 @@
       background: #ffffff;
       padding: 8px 12px 8px 16px !important;
     }
-    .brand-item-hover:hover {
-      background-color: #f1f5f9;
-    }
+    .brand-item-hover:hover { background-color: #f1f5f9; }
 
     /* FLOATING IN-APP NOTIFICATION BANNER */
     #floatingNotificationBanner {
@@ -66,9 +64,7 @@
       transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       cursor: pointer;
     }
-    #floatingNotificationBanner.show {
-      top: 20px;
-    }
+    #floatingNotificationBanner.show { top: 20px; }
   </style>
 </head>
 <body>
@@ -168,7 +164,6 @@
       <div class="mt-auto p-2 bg-dark rounded border border-secondary text-white small">
         <div class="d-flex justify-content-between align-items-center mb-1">
           <span>👤 <span id="loggedUser">Not Logged In</span></span>
-          <button id="notifEnableBtn" onclick="requestNotificationPermission()" class="btn btn-xs btn-outline-warning py-0 px-2 d-none" title="Enable Web Notifications"><i class="fa fa-bell"></i></button>
         </div>
         <button onclick="logout()" class="btn btn-sm btn-outline-danger w-100 mt-2"><i class="fa fa-power-off me-1"></i> Logout</button>
       </div>
@@ -186,7 +181,7 @@
       <!-- MODULE 1: DASHBOARD -->
       <div id="enquiryModule">
         
-        <!-- TODAY'S REMINDERS BANNER WITH SOUND ALERT -->
+        <!-- TODAY'S REMINDERS BANNER -->
         <div id="reminderBanner" class="card p-3 mb-4 border-start border-warning border-4 bg-light d-none">
           <div class="d-flex justify-content-between align-items-center">
             <div>
@@ -197,41 +192,6 @@
               <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="filterTodayLeadFollowups()">Lead F/Up</button>
               <button class="btn btn-sm btn-outline-success py-1 px-2" onclick="filterTodayPaymentFollowups()">Payment F/Up</button>
               <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="clearReminderFilter()">Show All</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ADMIN TARGET UPDATE CARD -->
-        <div class="card p-3 mb-4 bg-light border d-none" id="adminTargetCard">
-          <h6 class="fw-bold text-primary mb-2"><i class="fa fa-edit me-1"></i> Manage / Set Salesperson Target (Admin)</h6>
-          <div class="row g-2">
-            <div class="col-md-3">
-              <label class="form-label">Select Salesperson</label>
-              <select id="adminTargetSp" class="form-select form-select-sm"></select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Select Month</label>
-              <select id="adminTargetMonth" class="form-select form-select-sm">
-                <option value="1">April</option>
-                <option value="2">May</option>
-                <option value="3">June</option>
-                <option value="4">July</option>
-                <option value="5">August</option>
-                <option value="6">September</option>
-                <option value="7">October</option>
-                <option value="8">November</option>
-                <option value="9">December</option>
-                <option value="10">January</option>
-                <option value="11">February</option>
-                <option value="12">March</option>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">New Target Amount (₹)</label>
-              <input type="number" id="adminTargetVal" class="form-control form-control-sm" placeholder="e.g. 2500000">
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-              <button type="button" class="btn btn-sm btn-success w-100 fw-bold" id="adminTargetBtn" onclick="submitAdminTargetUpdate()">Update Target</button>
             </div>
           </div>
         </div>
@@ -1009,7 +969,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // APPS SCRIPT API ENDPOINT (Vercel compatible fetch bridge)
   const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
 
   async function callAppsScriptApi(action, data = {}) {
@@ -1030,10 +989,8 @@
   let loggedInUser = null, globalEnquiries = [], globalActivities = [];
   let filteredEnquiriesList = [], currentPage = 1, pageSize = 25;
   let powerBiChartInstance = null;
-  let currentLeadPhone = '';
-  let currentLeadBrand = '';
-  let calCurrentDate = new Date();
-  let selectedActivityDateStr = '';
+  let currentLeadPhone = '', currentLeadBrand = '';
+  let calCurrentDate = new Date(), selectedActivityDateStr = '';
   let userGeoCoords = null;
 
   let bannerTimer = null;
@@ -1042,7 +999,6 @@
     const banner = document.getElementById('floatingNotificationBanner');
     const titleEl = document.getElementById('floatBannerTitle');
     const msgEl = document.getElementById('floatBannerMsg');
-
     if (banner && titleEl && msgEl) {
       titleEl.innerText = title;
       msgEl.innerText = message;
@@ -1095,6 +1051,22 @@
     checkSession();
     initGeolocation();
   });
+
+  // Toggle Enquiry Form (Hide / Show)
+  function toggleEnquiryForm() {
+    const wrapper = document.getElementById('enquiryFormCollapseWrapper');
+    const btn = document.getElementById('toggleEnquiryFormBtn');
+    if (!wrapper || !btn) return;
+    if (wrapper.classList.contains('d-none')) {
+      wrapper.classList.remove('d-none');
+      btn.innerHTML = '<i class="fa fa-eye-slash me-1"></i> Hide Form';
+      btn.classList.replace('btn-primary', 'btn-outline-primary');
+    } else {
+      wrapper.classList.add('d-none');
+      btn.innerHTML = '<i class="fa fa-plus me-1"></i> Show / Create Enquiry';
+      btn.classList.replace('btn-outline-primary', 'btn-primary');
+    }
+  }
 
   function resetEnquiryForm() {
     const form = document.getElementById('enquiryForm');
@@ -1162,9 +1134,7 @@
     const row = document.getElementById('newBrandRow');
     if (!row) return;
     row.classList.toggle('d-none');
-    if (!row.classList.contains('d-none')) {
-      document.getElementById('newCustomBrandInput').focus();
-    }
+    if (!row.classList.contains('d-none')) document.getElementById('newCustomBrandInput').focus();
   }
 
   async function submitNewBrandPermanently() {
@@ -1227,28 +1197,23 @@
     renderBrandCheckboxes(data.brands || []);
 
     let spOptionsHtml = '', filterOpts = '<option value="ALL">All Team Member</option>';
-    let adminTargetOpts = '', exportSpOpts = '<option value="ALL">All Team Members</option>';
+    let exportSpOpts = '<option value="ALL">All Team Members</option>';
 
     masterSalesPersons.forEach(sp => {
       spOptionsHtml += `<option value="${sp}">`;
       filterOpts += `<option value="${sp}">${sp}</option>`;
-      adminTargetOpts += `<option value="${sp}">${sp}</option>`;
       exportSpOpts += `<option value="${sp}">${sp}</option>`;
     });
 
     document.getElementById('salesPersonsList').innerHTML = spOptionsHtml;
     document.getElementById('filterSalesPerson').innerHTML = filterOpts;
     document.getElementById('actFilterSalesPerson').innerHTML = filterOpts;
-    document.getElementById('adminTargetSp').innerHTML = adminTargetOpts;
     document.getElementById('exportSpSelect').innerHTML = exportSpOpts;
 
     const role = loggedInUser && loggedInUser.role ? loggedInUser.role.toLowerCase() : '';
     const isAdmin = role.indexOf('admin') > -1;
     const isManager = role.indexOf('manager') > -1;
     const isMgmt = isAdmin || isManager;
-
-    const adminTargetCard = document.getElementById('adminTargetCard');
-    if (adminTargetCard) adminTargetCard.classList.toggle('d-none', !isAdmin);
 
     const spInputEl = document.getElementById('salesPersonInput');
     const transferWrapper = document.getElementById('transferActionWrapper');
@@ -1272,27 +1237,6 @@
     renderCustomerDirectoryTable();
     loadDashboardData();
     setTimeout(loadSidebarTargetInfo, 600);
-  }
-
-  async function submitAdminTargetUpdate() {
-    const sp = document.getElementById('adminTargetSp').value;
-    const month = document.getElementById('adminTargetMonth').value;
-    const val = document.getElementById('adminTargetVal').value;
-    if (!sp || !val) { alert("Please select salesperson and enter target value!"); return; }
-
-    const btn = document.getElementById('adminTargetBtn');
-    btn.disabled = true; btn.innerText = 'Updating...';
-
-    const res = await callAppsScriptApi("updateSalespersonTargetFromPortal", { salesPerson: sp, monthCol: month, targetValue: val });
-    btn.disabled = false; btn.innerText = 'Update Target';
-
-    if (res && res.success) {
-      showFloatingNotification("Target Updated", res.message);
-      document.getElementById('adminTargetVal').value = '';
-      loadSidebarTargetInfo();
-    } else {
-      showAlert("Error: " + (res ? res.message : 'Failed'), 'danger');
-    }
   }
 
   function populateCustomerDatalist(customersList) {
@@ -1714,6 +1658,52 @@
     }
   }
 
+  async function modalOpenCustomerLedger() {
+    const custName = document.getElementById('mCustName').innerText;
+    if (!custName || custName === '-') return alert("Customer name not found!");
+
+    let ledgerModalEl = document.getElementById('dynamicCustomerLedgerModal');
+    if (!ledgerModalEl) {
+      const modalDiv = document.createElement('div');
+      modalDiv.id = 'dynamicCustomerLedgerModal';
+      modalDiv.className = 'modal fade';
+      modalDiv.tabIndex = '-1';
+      modalDiv.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header bg-dark text-white py-2">
+              <h6 class="modal-title fw-bold">Customer Interaction Ledger: <span id="ledgerCustTitle"></span></h6>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="table-responsive" style="max-height: 380px;">
+                <table class="table table-sm table-bordered small">
+                  <thead class="table-light">
+                    <tr><th>Enq ID</th><th>Date</th><th>Customer</th><th>Description</th><th>Brand</th><th>Value (₹)</th><th>Status</th><th>Payment</th></tr>
+                  </thead>
+                  <tbody id="dynamicLedgerTbody"><tr><td colspan="8" class="text-center text-muted">Loading history...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalDiv);
+      ledgerModalEl = modalDiv;
+    }
+
+    document.getElementById('ledgerCustTitle').innerText = custName;
+    new bootstrap.Modal(ledgerModalEl).show();
+
+    const ledger = await callAppsScriptApi("getCustomerLedgerHistory", { customerName: custName });
+    const tbody = document.getElementById('dynamicLedgerTbody');
+    if (ledger && ledger.length > 0) {
+      tbody.innerHTML = ledger.map(l => `<tr><td><b>${escapeHtml(l.id)}</b></td><td>${escapeHtml(l.date)}</td><td><b>${escapeHtml(l.customer || custName)}</b></td><td>${escapeHtml(l.description)}</td><td>${escapeHtml(l.brand)}</td><td>₹${Number(l.value || 0).toLocaleString()}</td><td><span class="badge bg-primary">${escapeHtml(l.status)}</span></td><td><span class="badge bg-secondary">${escapeHtml(l.paymentStatus)}</span></td></tr>`).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No prior history found.</td></tr>';
+    }
+  }
+
   async function saveFullLeadDetailsUpdate() {
     const st = document.getElementById('editStatus').value;
     if (st === 'Lost' && !document.getElementById('editLostReason').value.trim()) return alert("Lost reason required");
@@ -1739,9 +1729,7 @@
     }
   }
 
-  function renderCustomerDirectoryTable() {
-    applyCustomerDirectoryFilters();
-  }
+  function renderCustomerDirectoryTable() { applyCustomerDirectoryFilters(); }
 
   function applyCustomerDirectoryFilters() {
     const search = document.getElementById('custDirectorySearch').value.toLowerCase();
@@ -1962,10 +1950,7 @@
     if (saveState) localStorage.setItem('active_portal_tab', tabName);
   }
 
-  function logout() {
-    localStorage.clear();
-    location.reload();
-  }
+  function logout() { localStorage.clear(); location.reload(); }
 
   function showAlert(msg, type) {
     const alertBox = document.getElementById('alertBox');
