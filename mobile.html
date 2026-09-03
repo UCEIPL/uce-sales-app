@@ -364,6 +364,10 @@
               <input type="text" class="form-control" id="custCity" placeholder="City">
             </div>
             <div class="col-6">
+              <label class="form-label">Complete Address</label>
+              <input type="text" class="form-control" id="custAddress" placeholder="Address">
+            </div>
+            <div class="col-6">
               <label class="form-label">Contact Person</label>
               <input type="text" class="form-control" id="custContactPerson" placeholder="Name">
             </div>
@@ -371,7 +375,7 @@
               <label class="form-label">Phone</label>
               <input type="text" class="form-control" id="custMobile" placeholder="Phone">
             </div>
-            <div class="col-6">
+            <div class="col-12">
               <label class="form-label">Email</label>
               <input type="email" class="form-control" id="custEmail" placeholder="Email">
             </div>
@@ -698,13 +702,14 @@
         <div class="p-2 bg-light rounded border mb-3">
           <div class="row g-1 extra-small">
             <div class="col-6"><b>Customer:</b> <span id="mCustName">-</span></div>
+            <div class="col-6"><b>City:</b> <span id="mCustCity">-</span></div>
+            <div class="col-12"><b>Address:</b> <span id="mCustAddress">-</span></div>
             <div class="col-6"><b>Contact:</b> <span id="mCustContact">-</span></div>
             <div class="col-6"><b>Phone:</b> <span id="mCustPhone">-</span></div>
-            <div class="col-6"><b>Email:</b> <span id="mCustEmail">-</span></div>
-            <div class="col-6"><b>City:</b> <span id="mCustCity">-</span></div>
+            <div class="col-12"><b>Email:</b> <span id="mCustEmail">-</span></div>
             <div class="col-6"><b>Brand:</b> <span id="mBrand">-</span></div>
             <div class="col-6"><b>Mode:</b> <span id="mMode">-</span></div>
-            <div class="col-6"><b>Salesperson:</b> <span id="mSalesPerson">-</span></div>
+            <div class="col-12"><b>Salesperson:</b> <span id="mSalesPerson">-</span></div>
             <div class="col-12 mt-1"><b>Description:</b> <p class="m-0 text-muted" id="mDescription">-</p></div>
           </div>
         </div>
@@ -1252,6 +1257,7 @@
     const cust = rawCustomers.find(c => String(c.name).toLowerCase() === custName.trim().toLowerCase());
     if (cust) {
       document.getElementById('custCity').value = cust.city || '';
+      document.getElementById('custAddress').value = cust.address || '';
       document.getElementById('custContactPerson').value = cust.contactPerson || '';
       document.getElementById('custMobile').value = cust.mobile || '';
       document.getElementById('custEmail').value = cust.email || '';
@@ -1561,11 +1567,13 @@
     document.getElementById('mDescription').innerText = item.description || '-';
 
     const masterCustomer = findMasterCustomer(item.customer, item.salesPerson);
+    const address = (masterCustomer ? getCustomerField(masterCustomer, ['address','completeaddress','fulladdress']) : '') || item.address || '-';
     const contact = (masterCustomer ? getCustomerField(masterCustomer, ['contactPerson','contact person','contact']) : '') || item.contactPerson || '-';
     const phone = (masterCustomer ? getCustomerField(masterCustomer, ['mobile','phone','mobileNumber']) : '') || item.mobile || '-';
     const email = (masterCustomer ? getCustomerField(masterCustomer, ['email','emailId']) : '') || item.email || '-';
     const city = (masterCustomer ? getCustomerField(masterCustomer, ['city','location']) : '') || item.city || '-';
 
+    document.getElementById('mCustAddress').innerText = address;
     document.getElementById('mCustContact').innerText = contact;
     document.getElementById('mCustPhone').innerText = phone;
     document.getElementById('mCustEmail').innerText = email;
@@ -1971,6 +1979,7 @@
   async function handleSaveEnquiry(e) {
     e.preventDefault();
     const custName = document.getElementById('customerInput').value;
+    const address = document.getElementById('custAddress').value;
     const phone = document.getElementById('custMobile').value;
     const email = document.getElementById('custEmail').value;
 
@@ -1983,6 +1992,7 @@
     const formData = {
       customer: custName,
       city: document.getElementById('custCity').value,
+      address: address,
       contactPerson: document.getElementById('custContactPerson').value,
       mobile: phone,
       email: email,
