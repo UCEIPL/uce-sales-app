@@ -485,32 +485,7 @@
       </div>
     </div>
 
-    <!-- TAB 3: CUSTOMER DIRECTORY -->
-    <div id="tab-customers" class="d-none">
-      <div class="app-card mb-3 p-2">
-        <h6 class="fw-bold text-dark extra-small mb-2"><i class="fa fa-users me-1 text-primary"></i> Customer Directory</h6>
-        <div class="row g-1 mb-2">
-          <div class="col-12">
-            <input type="text" id="mobCustSearch" oninput="renderMobileCustomerDirectory()" class="form-control form-control-sm" placeholder="🔍 Search Customers...">
-          </div>
-          <div class="col-12">
-            <select id="mobCustTermsFilter" onchange="renderMobileCustomerDirectory()" class="form-select form-select-sm">
-              <option value="ALL">All Credit Terms</option>
-              <option value="0">100% Advance (0 Days)</option>
-              <option value="7">7 Days Credit</option>
-              <option value="15">15 Days Credit</option>
-              <option value="30">30 Days Credit</option>
-              <option value="45">45 Days Credit</option>
-              <option value="60">60 Days Credit</option>
-              <option value="90">90 Days Credit</option>
-            </select>
-          </div>
-        </div>
-        <div id="mobCustomerDirectoryList"></div>
-      </div>
-    </div>
-
-    <!-- TAB 4: VISUAL ANALYTICS -->
+    <!-- TAB 3: VISUAL ANALYTICS -->
     <div id="tab-analytics" class="d-none">
       <div class="row g-2 mb-3">
         <div class="col-6">
@@ -545,7 +520,7 @@
       </div>
     </div>
 
-    <!-- TAB 5: CALLS & VISITS CALENDAR -->
+    <!-- TAB 4: CALLS & VISITS CALENDAR -->
     <div id="tab-calls" class="d-none">
       <div class="app-card mb-3 p-2">
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -568,7 +543,7 @@
       </div>
     </div>
 
-    <!-- TAB 6: TO-DO TASKS CALENDAR -->
+    <!-- TAB 5: TO-DO TASKS CALENDAR -->
     <div id="tab-todo" class="d-none">
       <div class="app-card mb-3 p-2">
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -615,9 +590,6 @@
     </a>
     <a class="nav-btn" id="nb-add" onclick="switchTab('add')">
       <i class="fa fa-plus-circle"></i>Add Lead
-    </a>
-    <a class="nav-btn" id="nb-customers" onclick="switchTab('customers')">
-      <i class="fa fa-users"></i>Directory
     </a>
     <a class="nav-btn" id="nb-analytics" onclick="switchTab('analytics')">
       <i class="fa fa-chart-pie"></i>Analytics
@@ -1173,7 +1145,7 @@
   }
 
   function switchTab(tab) {
-    ['leads', 'add', 'customers', 'analytics', 'calls', 'todo'].forEach(t => {
+    ['leads', 'add', 'analytics', 'calls', 'todo'].forEach(t => {
       const el = document.getElementById('tab-' + t);
       const nb = document.getElementById('nb-' + t);
       if (el) el.classList.toggle('d-none', t !== tab);
@@ -1181,7 +1153,6 @@
     });
     const mainContent = document.getElementById('mainScrollContainer');
     if (mainContent) mainContent.scrollTop = 0;
-    if (tab === 'customers') renderMobileCustomerDirectory();
     if (tab === 'analytics') renderMobilePowerBiDashboard();
     if (tab === 'calls') renderMobileCalendarAndSummary();
     if (tab === 'todo') renderMobileTodoCalendarAndSummary();
@@ -1244,7 +1215,6 @@
 
     filterCustomersBySalesPerson();
     filterMobCustomerDropdown();
-    renderMobileCustomerDirectory();
     loadDashboard();
     setTimeout(loadSidebarTargetInfo, 600);
   }
@@ -1812,50 +1782,6 @@
     }
   }
 
-  function renderMobileCustomerDirectory() {
-    const search = document.getElementById('mobCustSearch') ? document.getElementById('mobCustSearch').value.trim().toLowerCase() : '';
-    const termFilter = document.getElementById('mobCustTermsFilter') ? document.getElementById('mobCustTermsFilter').value : 'ALL';
-    const container = document.getElementById('mobCustomerDirectoryList');
-    if (!container) return;
-
-    let list = rawCustomers || [];
-
-    if (search) {
-      list = list.filter(c => 
-        String(c.name || '').toLowerCase().includes(search) || 
-        String(c.city || '').toLowerCase().includes(search) || 
-        String(c.mobile || '').includes(search) || 
-        String(c.salesPerson || '').toLowerCase().includes(search)
-      );
-    }
-
-    if (termFilter !== 'ALL') {
-      list = list.filter(c => String(c.defaultTerms || '0') === String(termFilter));
-    }
-
-    if (list.length === 0) {
-      container.innerHTML = '<div class="text-center text-muted py-3 extra-small">No customers found</div>';
-      return;
-    }
-
-    container.innerHTML = list.map(c => `
-      <div class="p-2 border-bottom">
-        <div class="d-flex justify-content-between align-items-center">
-          <b class="text-primary">${escapeHtml(c.name)}</b>
-          <span class="badge bg-info text-dark">${c.defaultTerms && c.defaultTerms !== '0' ? c.defaultTerms + ' Days' : '100% Adv'}</span>
-        </div>
-        <div class="d-flex justify-content-between extra-small text-muted mt-1">
-          <span>👤 ${escapeHtml(c.salesPerson || '-')}</span>
-          <span>📞 ${escapeHtml(c.mobile || '-')}</span>
-        </div>
-        <div class="d-flex justify-content-between extra-small text-dark mt-1">
-          <span>📍 ${escapeHtml(c.city || '-')}</span>
-          <span class="fw-bold text-success">Limit: ₹${Number(c.creditLimit || 0).toLocaleString()}</span>
-        </div>
-      </div>
-    `).join('');
-  }
-
   function changeMobileCalendarMonth(step) {
     mobCalDate.setMonth(mobCalDate.getMonth() + step);
     renderMobileCalendarAndSummary();
@@ -2218,11 +2144,6 @@
     }
   }
 
- // ==========================================
-  // MOBILE TO-DO CALENDAR ENGINE & API HANDLERS (ENHANCED)
-  // ==========================================
-
-  // Date normalize helper taaki dd-MM-yyyy aur yyyy-MM-dd dono match ho sakein
   function normalizeDateForMatch(dStr) {
     if (!dStr) return '';
     dStr = String(dStr).trim();
