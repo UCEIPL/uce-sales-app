@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UCE Sales Portal (Desktop)</title>
+  <title>UCE Sales Portal (Vercel Edition)</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -111,7 +111,6 @@
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item"><a class="nav-link active" id="tab-enquiry-btn" onclick="showTab('enquiry')">📋 Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" id="tab-todo-btn" onclick="showTab('todo')">✅ To-Do List</a></li>
-        <li class="nav-item"><a class="nav-link" id="tab-customers-btn" onclick="showTab('customers')">👥 Customer Directory</a></li>
         <li class="nav-item"><a class="nav-link" id="tab-analytics-btn" onclick="showTab('analytics')">📊 Visual Analytics</a></li>
         <li class="nav-item"><a class="nav-link" id="tab-lost-btn" onclick="showTab('lost')">❌ Lost Enquiries</a></li>
         <li class="nav-item"><a class="nav-link" id="tab-activity-btn" onclick="showTab('activity')">📞 Calls & Visits</a></li>
@@ -165,6 +164,7 @@
       <div class="mt-auto p-2 bg-dark rounded border border-secondary text-white small">
         <div class="d-flex justify-content-between align-items-center mb-1">
           <span>👤 <span id="loggedUser">Not Logged In</span></span>
+          <button id="notifEnableBtn" onclick="requestNotificationPermission()" class="btn btn-xs btn-outline-warning py-0 px-2 d-none" title="Enable Web Notifications"><i class="fa fa-bell"></i></button>
         </div>
         <button onclick="logout()" class="btn btn-sm btn-outline-danger w-100 mt-2"><i class="fa fa-power-off me-1"></i> Logout</button>
       </div>
@@ -226,6 +226,10 @@
                 <div class="col-6 col-md-3">
                   <label class="form-label">City</label>
                   <input type="text" class="form-control form-control-sm" id="custCity" placeholder="City">
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small fw-bold">Complete Address</label>
+                  <input type="text" class="form-control form-control-sm" id="custModalAddress" placeholder="Full address...">
                 </div>
                 <div class="col-6 col-md-3">
                   <label class="form-label">Contact Person</label>
@@ -475,64 +479,6 @@
         </div>
       </div>
 
-      <!-- MODULE 2: CUSTOMER DIRECTORY -->
-      <div id="customersModule" class="d-none">
-        <div class="card p-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <h5 class="fw-bold text-dark m-0"><i class="fa fa-users me-1 text-primary"></i> Customer Directory</h5>
-              <small class="text-muted">User-wise customer profiles, contact info, and credit limits</small>
-            </div>
-            <button class="btn btn-sm btn-primary fw-bold" onclick="openNewCustomerProfileModal()"><i class="fa fa-plus me-1"></i> Add New Customer</button>
-          </div>
-
-          <div class="mb-3 p-2 bg-light rounded border">
-            <div class="row g-2">
-              <div class="col-md-4">
-                <label class="form-label mb-1">🔍 Search Customers</label>
-                <input type="text" id="custDirectorySearch" oninput="applyCustomerDirectoryFilters()" class="form-control form-control-sm" placeholder="Search by company name, contact, city, phone...">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label mb-1">Credit Terms Filter</label>
-                <select id="custCreditFilter" onchange="applyCustomerDirectoryFilters()" class="form-select form-select-sm">
-                  <option value="ALL">All Credit Terms</option>
-                  <option value="0">100% Advance (0 Days)</option>
-                  <option value="7">7 Days Credit</option>
-                  <option value="15">15 Days Credit</option>
-                  <option value="30">30 Days Credit</option>
-                  <option value="45">45 Days Credit</option>
-                  <option value="60">60 Days Credit</option>
-                  <option value="90">90 Days Credit</option>
-                </select>
-              </div>
-              <div class="col-md-4 d-flex align-items-end">
-                <span class="badge bg-secondary p-2 w-100 text-center" id="custDirectoryCountBadge">Showing 0 Customers</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table table-hover table-bordered align-middle small mb-0">
-              <thead class="table-dark">
-                <tr>
-                  <th>Customer Name</th>
-                  <th>Contact Person</th>
-                  <th>Phone / Email</th>
-                  <th>City</th>
-                  <th>Assigned SP</th>
-                  <th>Credit Limit (₹)</th>
-                  <th>Default Terms</th>
-                  <th class="text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody id="customerDirectoryBody">
-                <tr><td colspan="8" class="text-center text-muted py-3">Loading customer directory...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
       <!-- MODULE 3: VISUAL ANALYTICS -->
       <div id="analyticsModule" class="d-none">
         <div class="card p-4 mb-4">
@@ -725,7 +671,7 @@
 
         <!-- Task List for this Date -->
         <h6 class="fw-bold small text-muted mb-2"><i class="fa fa-list me-1"></i> Scheduled Tasks for this Day</h6>
-        <div class="table-responsive" style="max-height: 240px;">
+        <div class="table-responsive" style="max-height: 220px;">
           <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
@@ -1006,68 +952,9 @@
   </div>
 </div>
 
-<!-- EDIT / ADD CUSTOMER PROFILE MODAL -->
-<div class="modal fade" id="customerProfileModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content border-0 rounded-4 shadow">
-      <div class="modal-header bg-primary text-white py-2">
-        <h6 class="modal-title fw-bold" id="customerProfileModalTitle">Customer Profile Management</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-3">
-        <div class="row g-2">
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">Customer / Company Name *</label>
-            <input type="text" id="custModalName" class="form-control form-control-sm" required>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">Assigned Salesperson *</label>
-            <input type="text" id="custModalSp" class="form-control form-control-sm fw-bold">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">Contact Person</label>
-            <input type="text" id="custModalContact" class="form-control form-control-sm">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">City / Location</label>
-            <input type="text" id="custModalCity" class="form-control form-control-sm">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">Phone Number</label>
-            <input type="text" id="custModalPhone" class="form-control form-control-sm">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">Email Address</label>
-            <input type="email" id="custModalEmail" class="form-control form-control-sm">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold text-success">Approved Credit Limit (₹)</label>
-            <input type="number" id="custModalCreditLimit" class="form-control form-control-sm fw-bold text-success" placeholder="e.g. 1000000">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold text-primary">Default Payment Terms</label>
-            <select id="custModalTerms" class="form-select form-select-sm fw-bold">
-              <option value="0" selected>100% Advance (0 Days)</option>
-              <option value="7">7 Days Credit</option>
-              <option value="15">15 Days Credit</option>
-              <option value="30">30 Days Credit</option>
-              <option value="45">45 Days Credit</option>
-              <option value="60">60 Days Credit</option>
-              <option value="90">90 Days Credit</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer py-2">
-        <button type="button" class="btn btn-sm btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-sm btn-success fw-bold px-4" id="saveCustProfileBtn" onclick="submitCustomerProfileSave()"><i class="fa fa-save me-1"></i> Save to Customers Sheet</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // VERCEL API BRIDGE (Ensures smooth connection with Apps Script backend)
   const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
 
   async function callAppsScriptApi(action, data = {}) {
@@ -1091,8 +978,10 @@
   let powerBiChartInstance = null;
   let currentLeadPhone = '', currentLeadBrand = '';
   let calCurrentDate = new Date(), selectedActivityDateStr = '';
-  let todoCalCurrentDate = new Date(), selectedTodoDateStr = '';
   let userGeoCoords = null;
+
+  let todoCalCurrentDate = new Date();
+  let selectedTodoDateStr = '';
 
   function normalizeDateForMatch(dStr) {
     if (!dStr) return '';
@@ -1135,6 +1024,27 @@
     if (bannerTimer) clearTimeout(bannerTimer);
   }
 
+  function checkNotificationSupport() {
+    if ('Notification' in window) {
+      const btn = document.getElementById('notifEnableBtn');
+      if (Notification.permission === 'default' && btn) {
+        btn.classList.remove('d-none');
+      } else if (btn) {
+        btn.classList.add('d-none');
+      }
+    }
+  }
+
+  async function requestNotificationPermission() {
+    if (!('Notification' in window)) return;
+    const permission = await Notification.requestPermission();
+    const btn = document.getElementById('notifEnableBtn');
+    if (permission === 'granted') {
+      if (btn) btn.classList.add('d-none');
+      showFloatingNotification("Active", "Push notifications enabled!");
+    }
+  }
+
   function playNotificationChime() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1142,13 +1052,12 @@
       const gain = audioCtx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
       gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.4);
+      osc.stop(audioCtx.currentTime + 0.3);
     } catch (e) {}
   }
 
@@ -1164,6 +1073,7 @@
 
   window.addEventListener('DOMContentLoaded', function() {
     resetEnquiryForm();
+    checkNotificationSupport();
     document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
     document.getElementById('enquiryForm').addEventListener('submit', handleEnquirySubmit);
 
@@ -1177,15 +1087,8 @@
     const wrapper = document.getElementById('enquiryFormCollapseWrapper');
     const btn = document.getElementById('toggleEnquiryFormBtn');
     if (!wrapper || !btn) return;
-    if (wrapper.classList.contains('d-none')) {
-      wrapper.classList.remove('d-none');
-      btn.innerHTML = '<i class="fa fa-eye-slash me-1"></i> Hide Form';
-      btn.classList.replace('btn-primary', 'btn-outline-primary');
-    } else {
-      wrapper.classList.add('d-none');
-      btn.innerHTML = '<i class="fa fa-plus me-1"></i> Show / Create Enquiry';
-      btn.classList.replace('btn-outline-primary', 'btn-primary');
-    }
+    wrapper.classList.toggle('d-none');
+    btn.innerHTML = wrapper.classList.contains('d-none') ? '<i class="fa fa-plus me-1"></i> Show / Create Enquiry' : '<i class="fa fa-eye-slash me-1"></i> Hide Form';
   }
 
   function resetEnquiryForm() {
@@ -1195,10 +1098,7 @@
     if (document.getElementById('enquiryDate')) document.getElementById('enquiryDate').value = today;
     if (document.getElementById('paymentTermsSelect')) document.getElementById('paymentTermsSelect').value = '0';
     
-    const cbs = document.querySelectorAll('.brand-checkbox-input');
-    cbs.forEach(cb => cb.checked = false);
     updateBrandDropdownLabel();
-
     if (loggedInUser && loggedInUser.salesPerson) {
       const spInputEl = document.getElementById('salesPersonInput');
       if (spInputEl) spInputEl.value = loggedInUser.salesPerson;
@@ -1229,7 +1129,7 @@
         </div>
       `;
     });
-    container.innerHTML = html || '<div class="text-muted extra-small">No brands available</div>';
+    container.innerHTML = html;
     updateBrandDropdownLabel();
   }
 
@@ -1268,14 +1168,9 @@
     if (res && res.success) {
       if (masterBrandsList.indexOf(res.brand) === -1) masterBrandsList.push(res.brand);
       renderBrandCheckboxes(masterBrandsList);
-      setTimeout(() => {
-        const cbs = document.querySelectorAll('.brand-checkbox-input');
-        cbs.forEach(cb => { if (cb.value.toLowerCase() === res.brand.toLowerCase()) cb.checked = true; });
-        updateBrandDropdownLabel();
-      }, 100);
       input.value = '';
       toggleAddNewBrandInput();
-      showFloatingNotification("Brand Added", `Brand "${res.brand}" saved successfully.`);
+      showFloatingNotification("Brand Added", `Brand "${res.brand}" saved.`);
     } else {
       alert("Error: " + (res ? res.message : 'Failed'));
     }
@@ -1306,8 +1201,7 @@
 
   async function fetchMasterData() {
     const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
-    if (!data) return;
-    onMasterDataLoaded(data);
+    if (data) onMasterDataLoaded(data);
   }
 
   function onMasterDataLoaded(data) {
@@ -1317,11 +1211,12 @@
     renderBrandCheckboxes(data.brands || []);
 
     let spOptionsHtml = '', filterOpts = '<option value="ALL">All Team Member</option>';
-    let exportSpOpts = '<option value="ALL">All Team Members</option>';
+    let adminTargetOpts = '', exportSpOpts = '<option value="ALL">All Team Members</option>';
 
     masterSalesPersons.forEach(sp => {
       spOptionsHtml += `<option value="${sp}">`;
       filterOpts += `<option value="${sp}">${sp}</option>`;
+      adminTargetOpts += `<option value="${sp}">${sp}</option>`;
       exportSpOpts += `<option value="${sp}">${sp}</option>`;
     });
 
@@ -1329,12 +1224,16 @@
     document.getElementById('filterSalesPerson').innerHTML = filterOpts;
     document.getElementById('actFilterSalesPerson').innerHTML = filterOpts;
     if (document.getElementById('todoFilterSalesPerson')) document.getElementById('todoFilterSalesPerson').innerHTML = filterOpts;
+    if (document.getElementById('adminTargetSp')) document.getElementById('adminTargetSp').innerHTML = adminTargetOpts;
     document.getElementById('exportSpSelect').innerHTML = exportSpOpts;
 
     const role = loggedInUser && loggedInUser.role ? loggedInUser.role.toLowerCase() : '';
     const isAdmin = role.indexOf('admin') > -1;
     const isManager = role.indexOf('manager') > -1;
     const isMgmt = isAdmin || isManager;
+
+    const adminTargetCard = document.getElementById('adminTargetCard');
+    if (adminTargetCard) adminTargetCard.classList.toggle('d-none', !isAdmin);
 
     const spInputEl = document.getElementById('salesPersonInput');
     const transferWrapper = document.getElementById('transferActionWrapper');
@@ -1355,9 +1254,24 @@
 
     filterCustomersBySalesPerson();
     filterCustomerDropdownForActivity();
-    renderCustomerDirectoryTable();
     loadDashboardData();
     setTimeout(loadSidebarTargetInfo, 600);
+  }
+
+  async function submitAdminTargetUpdate() {
+    const sp = document.getElementById('adminTargetSp').value;
+    const month = document.getElementById('adminTargetMonth').value;
+    const val = document.getElementById('adminTargetVal').value;
+    if (!sp || !val) { alert("Select salesperson & amount!"); return; }
+
+    const res = await callAppsScriptApi("updateSalespersonTargetFromPortal", { salesPerson: sp, monthCol: month, targetValue: val });
+    if (res && res.success) {
+      showFloatingNotification("Target Updated", res.message);
+      document.getElementById('adminTargetVal').value = '';
+      loadSidebarTargetInfo();
+    } else {
+      alert("Error: " + (res ? res.message : 'Failed'));
+    }
   }
 
   function populateCustomerDatalist(customersList) {
@@ -1368,9 +1282,8 @@
 
   function filterCustomersBySalesPerson() {
     const spInput = document.getElementById('salesPersonInput').value.trim().toLowerCase();
-    if (!spInput) {
-      populateCustomerDatalist(rawCustomers);
-    } else {
+    if (!spInput) populateCustomerDatalist(rawCustomers);
+    else {
       const filtered = rawCustomers.filter(c => String(c.salesPerson || '').toLowerCase().trim() === spInput || String(c.salesPerson || '').toLowerCase().trim().indexOf(spInput) > -1);
       populateCustomerDatalist(filtered);
     }
@@ -1380,11 +1293,8 @@
     const spInput = document.getElementById('modalActSalesPerson').value.trim().toLowerCase();
     const actList = document.getElementById('actCustomersList');
     if (!actList) return;
-
     let filtered = rawCustomers;
-    if (spInput) {
-      filtered = rawCustomers.filter(c => String(c.salesPerson || '').toLowerCase().trim() === spInput || String(c.salesPerson || '').toLowerCase().trim().indexOf(spInput) > -1);
-    }
+    if (spInput) filtered = rawCustomers.filter(c => String(c.salesPerson || '').toLowerCase().trim() === spInput);
     actList.innerHTML = filtered.map(c => `<option value="${c.name}">`).join('');
   }
 
@@ -1393,6 +1303,7 @@
     const cust = rawCustomers.find(c => c.name.toLowerCase() === selectedCustName.trim().toLowerCase());
     if (cust) {
       document.getElementById('custCity').value = cust.city || '';
+      document.getElementById('custModalAddress').value = cust.address || '';
       document.getElementById('custContactPerson').value = cust.contactPerson || '';
       document.getElementById('custMobile').value = cust.mobile || '';
       document.getElementById('custEmail').value = cust.email || '';
@@ -1439,6 +1350,7 @@
     const formData = {
       customer: custName,
       city: document.getElementById('custCity').value,
+      address: document.getElementById('custModalAddress').value,
       contactPerson: document.getElementById('custContactPerson').value,
       mobile: document.getElementById('custMobile').value,
       email: document.getElementById('custEmail').value,
@@ -1466,7 +1378,7 @@
     if (res && res.success) {
       showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
       resetEnquiryForm();
-      fetchMasterData();
+      fetchMasterData(); // AUTO-REFRESHES DASHBOARD INSTANTLY
     } else {
       showAlert('Error: ' + (res ? res.message : 'Failed'), 'danger');
     }
@@ -1502,9 +1414,7 @@
 
     if (tasks) {
       tasks.forEach(t => {
-        if (normalizeDateForMatch(t.dueDate) === todayStr && String(t.status).toLowerCase() !== 'completed') {
-          todayTaskCount++;
-        }
+        if (normalizeDateForMatch(t.dueDate) === todayStr && String(t.status).toLowerCase() !== 'completed') todayTaskCount++;
       });
     }
 
@@ -1513,10 +1423,10 @@
 
     if (todayLeadCount > 0 || todayPayCount > 0 || todayTaskCount > 0) {
       if (banner && textElem) {
-        textElem.innerHTML = `You have <b>${todayLeadCount} Lead Follow-up(s)</b>, <b>${todayPayCount} Payment Follow-up(s)</b>, and <b>${todayTaskCount} Task(s)</b> scheduled for today (${todayStr}).`;
+        textElem.innerHTML = `You have <b>${todayLeadCount} Lead(s)</b>, <b>${todayPayCount} Payment(s)</b>, and <b>${todayTaskCount} Task(s)</b> due today.`;
         banner.classList.remove('d-none');
       }
-      showFloatingNotification("Today's Reminders", `${todayLeadCount} Lead, ${todayPayCount} Payment & ${todayTaskCount} Tasks today!`);
+      showFloatingNotification("Reminders", `${todayLeadCount} Leads, ${todayPayCount} Payments & ${todayTaskCount} Tasks today.`);
     } else {
       if (banner) banner.classList.add('d-none');
     }
@@ -1556,13 +1466,10 @@
 
     if (searchVal) {
       filteredEnquiriesList = filteredEnquiriesList.filter(item => {
-        return (
-          String(item.id || '').toLowerCase().indexOf(searchVal) > -1 ||
-          String(item.customer || '').toLowerCase().indexOf(searchVal) > -1 ||
-          String(item.salesPerson || '').toLowerCase().indexOf(searchVal) > -1 ||
-          String(item.brand || '').toLowerCase().indexOf(searchVal) > -1 ||
-          String(item.description || '').toLowerCase().indexOf(searchVal) > -1
-        );
+        return String(item.id || '').toLowerCase().indexOf(searchVal) > -1 ||
+               String(item.customer || '').toLowerCase().indexOf(searchVal) > -1 ||
+               String(item.salesPerson || '').toLowerCase().indexOf(searchVal) > -1 ||
+               String(item.brand || '').toLowerCase().indexOf(searchVal) > -1;
       });
     }
 
@@ -1609,19 +1516,18 @@
 
         let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${item.leadFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
         let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${item.paymentFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
-        let duplicateWarningIcon = item.isDuplicate ? `<span class="badge bg-warning text-dark ms-1" title="${item.isDuplicate}">⚠️ Duplicate</span>` : '';
 
         rows += `
           <tr>
             <td class="fw-bold">${item.id}</td>
             <td>${item.date}</td>
-            <td><b>${item.customer}</b> ${duplicateWarningIcon}</td>
-            <td class="fw-bold text-dark">${item.salesPerson || '-'}</td>
+            <td><b>${escapeHtml(item.customer)}</b></td>
+            <td class="fw-bold text-dark">${escapeHtml(item.salesPerson || '-')}</td>
             <td class="fw-bold text-success">₹${Number(item.value || 0).toLocaleString()}</td>
             <td>${leadFup}</td>
-            <td><span class="badge ${payBadgeColor}">${item.paymentStatus || 'Pending'}</span></td>
+            <td><span class="badge ${payBadgeColor}">${escapeHtml(item.paymentStatus || 'Pending')}</span></td>
             <td>${payFup}</td>
-            <td><span class="badge ${badgeColor}">${item.status || 'New Lead'}</span></td>
+            <td><span class="badge ${badgeColor}">${escapeHtml(item.status || 'New Lead')}</span></td>
             <td><button type="button" class="btn btn-sm btn-primary py-0 px-2" onclick="openEditModal('${item.id}')">👁️ Details</button></td>
           </tr>
         `;
@@ -1742,10 +1648,6 @@
     return '-';
   }
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
   function fetchAndRenderDynamicCustomerDetails(customerName, salesPerson) {
     const cust = findMasterCustomer(customerName, salesPerson);
     const box = document.getElementById('dynamicCustomerDetailsBox');
@@ -1860,74 +1762,6 @@
     }
   }
 
-  function renderCustomerDirectoryTable() { applyCustomerDirectoryFilters(); }
-
-  function applyCustomerDirectoryFilters() {
-    const search = document.getElementById('custDirectorySearch').value.toLowerCase();
-    const term = document.getElementById('custCreditFilter').value;
-    let list = rawCustomers || [];
-
-    if (search) list = list.filter(c => String(c.name || '').toLowerCase().includes(search) || String(c.mobile || '').includes(search));
-    if (term !== 'ALL') list = list.filter(c => String(c.defaultTerms || '0') === term);
-
-    document.getElementById('custDirectoryCountBadge').innerText = `Showing ${list.length} Customers`;
-    document.getElementById('customerDirectoryBody').innerHTML = list.map(c => `
-      <tr>
-        <td><b>${escapeHtml(c.name)}</b></td>
-        <td>${escapeHtml(c.contactPerson || '-')}</td>
-        <td>${escapeHtml(c.mobile || '-')}</td>
-        <td>${escapeHtml(c.city || '-')}</td>
-        <td>${escapeHtml(c.salesPerson || '-')}</td>
-        <td class="text-success">₹${Number(c.creditLimit || 0).toLocaleString()}</td>
-        <td>${c.defaultTerms || '0'} Days</td>
-        <td class="text-center"><button class="btn btn-sm btn-outline-primary py-0" onclick="openEditCustomerProfileModal('${escapeHtml(c.name)}')">Edit</button></td>
-      </tr>
-    `).join('') || '<tr><td colspan="8" class="text-center text-muted">No customers found</td></tr>';
-  }
-
-  function openNewCustomerProfileModal() {
-    document.getElementById('customerProfileModalTitle').innerText = "Add Customer Profile";
-    document.getElementById('custModalName').value = '';
-    document.getElementById('custModalName').readOnly = false;
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('customerProfileModal')).show();
-  }
-
-  function openEditCustomerProfileModal(name) {
-    const cust = rawCustomers.find(c => c.name.toLowerCase() === name.toLowerCase());
-    if (!cust) return;
-    document.getElementById('customerProfileModalTitle').innerText = "Edit Customer";
-    document.getElementById('custModalName').value = cust.name;
-    document.getElementById('custModalName').readOnly = true;
-    document.getElementById('custModalSp').value = cust.salesPerson || '';
-    document.getElementById('custModalContact').value = cust.contactPerson || '';
-    document.getElementById('custModalCity').value = cust.city || '';
-    document.getElementById('custModalPhone').value = cust.mobile || '';
-    document.getElementById('custModalEmail').value = cust.email || '';
-    document.getElementById('custModalCreditLimit').value = cust.creditLimit || 0;
-    document.getElementById('custModalTerms').value = cust.defaultTerms || '0';
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('customerProfileModal')).show();
-  }
-
-  async function submitCustomerProfileSave() {
-    const payload = {
-      name: document.getElementById('custModalName').value.trim(),
-      salesPerson: document.getElementById('custModalSp').value.trim(),
-      contactPerson: document.getElementById('custModalContact').value.trim(),
-      city: document.getElementById('custModalCity').value.trim(),
-      mobile: document.getElementById('custModalPhone').value.trim(),
-      email: document.getElementById('custModalEmail').value.trim(),
-      creditLimit: Number(document.getElementById('custModalCreditLimit').value) || 0,
-      defaultTerms: document.getElementById('custModalTerms').value
-    };
-
-    const res = await callAppsScriptApi("saveCustomerProfileFull", payload);
-    if (res && res.success) {
-      showFloatingNotification("Saved", res.message);
-      bootstrap.Modal.getInstance(document.getElementById('customerProfileModal')).hide();
-      fetchMasterData();
-    }
-  }
-
   function changeCalendarMonth(step) {
     calCurrentDate.setMonth(calCurrentDate.getMonth() + step);
     renderActivityCalendarAndMatrix();
@@ -1972,8 +1806,8 @@
   function renderModalActivitiesList() {
     const acts = globalActivities.filter(a => a.date === selectedActivityDateStr);
     document.getElementById('modalActivityTable').innerHTML = acts.map(a => `
-      <tr><td><b>${escapeHtml(a.customer)}</b></td><td>${escapeHtml(a.salesPerson)}</td><td><span class="badge bg-info">${a.type}</span></td><td>${a.remark || '-'}</td></tr>
-    `).join('') || '<tr><td colspan="4" class="text-center text-muted">No activity</td></tr>';
+      <tr><td><b>${escapeHtml(a.customer)}</b></td><td>${escapeHtml(a.salesPerson)}</td><td><span class="badge bg-info">${a.type}</span></td><td>${a.status === 'Yes' ? 'Connected' : 'Failed'}</td><td>${a.remark || '-'}</td></tr>
+    `).join('') || '<tr><td colspan="5" class="text-center text-muted py-2">No activity</td></tr>';
   }
 
   async function submitModalActivityRecord() {
@@ -2033,7 +1867,7 @@
     let won = 0, pipeline = 0, lost = 0;
     globalEnquiries.forEach(e => {
       let v = Number(e.value) || 0, s = String(e.status).toLowerCase();
-      if (s === 'won') won += v; else if (s !== 'lost') pipeline += v; else pipeline += v;
+      if (s === 'won') won += v; else if (s === 'lost') lost += v; else pipeline += v;
     });
 
     document.getElementById('statTotalEnq').innerText = globalEnquiries.length;
@@ -2070,7 +1904,6 @@
     powerBiChartInstance = new Chart(ctx, chartConfig);
   }
 
-  // --- TO-DO LIST CALENDAR LOGIC ---
   function changeTodoCalendarMonth(step) {
     todoCalCurrentDate.setMonth(todoCalCurrentDate.getMonth() + step);
     renderTodoCalendar();
@@ -2091,9 +1924,7 @@
     if (!grid) return;
     grid.innerHTML = '';
 
-    for (let i = 0; i < firstDay; i++) {
-      grid.innerHTML += `<div class="cal-day empty"></div>`;
-    }
+    for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="cal-day empty"></div>`;
 
     let monthPending = 0, monthCompleted = 0;
 
@@ -2126,25 +1957,18 @@
 
   function openTodoDateModal(dateStr) {
     selectedTodoDateStr = dateStr;
-    const titleEl = document.getElementById('todoModalDateTitle');
-    if (titleEl) titleEl.innerHTML = `<i class="fa fa-calendar-day me-2"></i>Tasks for Date: ${dateStr}`;
+    document.getElementById('todoModalDateTitle').innerHTML = `<i class="fa fa-calendar-day me-2"></i>Tasks for Date: ${dateStr}`;
+    document.getElementById('modalTodoTitle').value = '';
     
-    const taskInput = document.getElementById('modalTodoTitle');
-    if (taskInput) taskInput.value = '';
-
     const spInput = document.getElementById('modalTodoSalesPerson');
     const activeSpFilter = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
     if (spInput) {
-      if (activeSpFilter !== 'ALL') {
-        spInput.value = activeSpFilter;
-      } else if (loggedInUser && loggedInUser.salesPerson) {
-        spInput.value = loggedInUser.salesPerson;
-      }
+      if (activeSpFilter !== 'ALL') spInput.value = activeSpFilter;
+      else if (loggedInUser && loggedInUser.salesPerson) spInput.value = loggedInUser.salesPerson;
     }
 
     renderModalTodoList();
-    const modalEl = document.getElementById('todoDateModal');
-    if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('todoDateModal')).show();
   }
 
   function renderModalTodoList() {
@@ -2184,10 +2008,7 @@
     const sp = document.getElementById('modalTodoSalesPerson').value.trim();
     const priority = document.getElementById('modalTodoPriority').value;
 
-    if (!title) {
-      alert("Please enter task description!");
-      return;
-    }
+    if (!title) { alert("Please enter task description!"); return; }
 
     const btn = document.getElementById('modalTodoSaveBtn');
     if (btn) { btn.disabled = true; btn.innerText = 'Adding...'; }
@@ -2208,7 +2029,7 @@
       await loadDashboardData();
       setTimeout(renderModalTodoList, 400);
     } else {
-      showAlert('Error: ' + (res ? res.message : 'Failed to save task'), 'danger');
+      showAlert('Error: ' + (res ? res.message : 'Failed'), 'danger');
     }
   }
 
@@ -2224,13 +2045,12 @@
   }
 
   function showTab(tabName, saveState = true) {
-    ['enquiry', 'todo', 'customers', 'analytics', 'lost', 'activity'].forEach(t => {
+    ['enquiry', 'todo', 'analytics', 'lost', 'activity'].forEach(t => {
       const mod = document.getElementById(t + 'Module');
       const btn = document.getElementById('tab-' + t + '-btn');
       if (mod) mod.classList.toggle('d-none', t !== tabName);
       if (btn) btn.classList.toggle('active', t === tabName);
     });
-    if (tabName === 'customers') renderCustomerDirectoryTable();
     if (tabName === 'analytics') renderPowerBiDashboard();
     if (tabName === 'activity') renderActivityCalendarAndMatrix();
     if (tabName === 'todo') renderTodoCalendar();
