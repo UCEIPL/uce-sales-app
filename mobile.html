@@ -2218,9 +2218,30 @@
     }
   }
 
+ // ==========================================
+  // MOBILE TO-DO CALENDAR ENGINE & API HANDLERS (ENHANCED)
   // ==========================================
-  // MOBILE TO-DO CALENDAR ENGINE & API HANDLERS
-  // ==========================================
+
+  // Date normalize helper taaki dd-MM-yyyy aur yyyy-MM-dd dono match ho sakein
+  function normalizeDateForMatch(dStr) {
+    if (!dStr) return '';
+    dStr = String(dStr).trim();
+    if (dStr.indexOf('T') > -1) dStr = dStr.split('T')[0];
+    if (dStr.indexOf('/') > -1) {
+      var parts = dStr.split('/');
+      if (parts.length === 3) {
+        if (parts[2].length === 4) return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+        if (parts[0].length === 4) return parts[0] + '-' + parts[1].padStart(2, '0') + '-' + parts[2].padStart(2, '0');
+      }
+    }
+    if (dStr.indexOf('-') > -1) {
+      var p = dStr.split('-');
+      if (p.length === 3 && p[0].length === 2 && p[2].length === 4) {
+        return p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0');
+      }
+    }
+    return dStr;
+  }
 
   function changeMobTodoCalendarMonth(step) {
     mobTodoCalDate.setMonth(mobTodoCalDate.getMonth() + step);
@@ -2248,10 +2269,10 @@
 
     for (let d = 1; d <= totalDays; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayTasks = (globalTasks || []).filter(t => t.dueDate === dateStr);
+      const dayTasks = (globalTasks || []).filter(t => normalizeDateForMatch(t.dueDate) === dateStr);
       
-      const pendingCount = dayTasks.filter(t => t.status !== 'Completed').length;
-      const completedCount = dayTasks.filter(t => t.status === 'Completed').length;
+      const pendingCount = dayTasks.filter(t => String(t.status).toLowerCase() !== 'completed').length;
+      const completedCount = dayTasks.filter(t => String(t.status).toLowerCase() === 'completed').length;
 
       monthPending += pendingCount;
       monthCompleted += completedCount;
@@ -2263,7 +2284,7 @@
       grid.innerHTML += `
         <div class="cal-day-m" onclick="openMobDateTodoModal('${dateStr}')">
           <div class="day-num-m">${d}</div>
-          <div>${dots}</div>
+          <div class="d-flex justify-content-center gap-1 mt-1">${dots}</div>
         </div>
       `;
     }
@@ -2277,7 +2298,7 @@
   function openMobDateTodoModal(dateStr) {
     selectedMobTodoDateStr = dateStr;
     const titleEl = document.getElementById('mobTodoModalDateTitle');
-    if (titleEl) titleEl.innerText = `Tasks: ${dateStr}`;
+    if (titleEl) titleEl.innerText = `Tasks for: ${dateStr}`;
 
     const taskInput = document.getElementById('mobModalTodoTitle');
     if (taskInput) taskInput.value = '';
@@ -2293,30 +2314,36 @@
   }
 
   function renderMobModalTasksList() {
-    const tasks = (globalTasks || []).filter(t => t.dueDate === selectedMobTodoDateStr);
+    const tasks = (globalTasks || []).filter(t => normalizeDateForMatch(t.dueDate) === selectedMobTodoDateStr);
     const container = document.getElementById('mobModalTasksList');
     if (!container) return;
 
     if (tasks.length === 0) {
-      container.innerHTML = '<div class="text-muted text-center py-2">No tasks scheduled for this date</div>';
+      container.innerHTML = '<div class="text-muted text-center py-3">No tasks scheduled for this date</div>';
       return;
     }
 
     container.innerHTML = tasks.map(t => {
-      const isDone = t.status === 'Completed';
-      const badge = isDone ? '<span class="badge bg-success">Done</span>' : '<span class="badge bg-warning text-dark">Pending</span>';
-      const pColor = t.priority === 'High' ? 'text-danger fw-bold' : (t.priority === 'Low' ? 'text-success' : 'text-dark');
+      const isDone = String(t.status).toLowerCase() === 'completed';
+      const badge = isDone 
+        ? '<span class="badge bg-success">Done</span>' 
+        : '<span class="badge bg-warning text-dark">Pending</span>';
+      const pColor = t.priority === 'High' ? 'text-danger fw-bold' : (t.priority === 'Low' ? 'text-success' : 'text-primary');
 
       return `
-        <div class="p-2 border-bottom d-flex justify-content-between align-items-center" ${isDone ? 'style="opacity: 0.6; text-decoration: line-through;"' : ''}>
-          <div>
-            <b>${escapeHtml(t.title)}</b><br>
-            <span class="text-muted">👤 ${escapeHtml(t.salesPerson)} | <span class="${pColor}">${escapeHtml(t.priority)}</span></span>
+        <div class="p-2 mb-2 rounded border ${isDone ? 'bg-light' : 'bg-white shadow-sm'} d-flex justify-content-between align-items-center">
+          <div style="flex: 1; padding-right: 8px;">
+            <div class="${isDone ? 'text-decoration-line-through text-muted' : 'fw-bold text-dark'}">${escapeHtml(t.title)}</div>
+            <div class="extra-small text-muted mt-1">
+              <span>👤 ${escapeHtml(t.salesPerson)}</span> | 
+              <span class="${pColor}">Priority: ${escapeHtml(t.priority || 'Medium')}</span>
+            </div>
           </div>
-          <div class="d-flex align-items-center gap-1">
+          <div class="d-flex flex-column align-items-end gap-1">
             ${badge}
-            <button class="btn btn-xs ${isDone ? 'btn-outline-secondary' : 'btn-success'} py-0 px-2 extra-small" onclick="toggleMobTaskStatus('${t.id}', '${isDone ? 'Pending' : 'Completed'}')">
-              ${isDone ? 'Undo' : '✔'}
+            <button class="btn btn-xs ${isDone ? 'btn-outline-secondary' : 'btn-success'} py-1 px-2 extra-small fw-bold" 
+                    onclick="toggleMobTaskStatus('${t.id}', '${isDone ? 'Pending' : 'Completed'}')">
+              ${isDone ? '↺ Mark Pending' : '✔ Complete'}
             </button>
           </div>
         </div>
@@ -2368,8 +2395,12 @@
   async function toggleMobTaskStatus(taskId, newStatus) {
     const res = await callAppsScriptApi("toggleToDoTaskStatus", { taskId: taskId, newStatus: newStatus });
     if (res && res.success) {
+      showFloatingNotification("Task Updated", `Task marked as ${newStatus}`);
       await loadDashboard();
-      setTimeout(renderMobModalTasksList, 300);
+      setTimeout(() => {
+        renderMobModalTasksList();
+        renderMobileMonthlyTasksSummary();
+      }, 300);
     } else {
       showAlert('Error: ' + (res ? res.message : 'Status update failed'), 'danger');
     }
@@ -2389,10 +2420,13 @@
     const month = String(mobTodoCalDate.getMonth() + 1).padStart(2, '0');
     const monthPrefix = `${year}-${month}`;
 
-    let monthTasks = (globalTasks || []).filter(t => t.dueDate && t.dueDate.startsWith(monthPrefix));
+    let monthTasks = (globalTasks || []).filter(t => {
+      const normDate = normalizeDateForMatch(t.dueDate);
+      return normDate && normDate.startsWith(monthPrefix);
+    });
 
-    if (currentMobTaskFilter === 'Pending') monthTasks = monthTasks.filter(t => t.status !== 'Completed');
-    if (currentMobTaskFilter === 'Completed') monthTasks = monthTasks.filter(t => t.status === 'Completed');
+    if (currentMobTaskFilter === 'Pending') monthTasks = monthTasks.filter(t => String(t.status).toLowerCase() !== 'completed');
+    if (currentMobTaskFilter === 'Completed') monthTasks = monthTasks.filter(t => String(t.status).toLowerCase() === 'completed');
 
     const container = document.getElementById('mobMonthlyTaskSummaryContainer');
     if (!container) return;
@@ -2403,16 +2437,24 @@
     }
 
     container.innerHTML = monthTasks.map(t => {
-      const isDone = t.status === 'Completed';
-      const badge = isDone ? '<span class="badge bg-success">Done</span>' : '<span class="badge bg-warning text-dark">Pending</span>';
+      const isDone = String(t.status).toLowerCase() === 'completed';
+      const badge = isDone 
+        ? '<span class="badge bg-success">Done</span>' 
+        : '<span class="badge bg-warning text-dark">Pending</span>';
 
       return `
-        <div class="p-2 border-bottom d-flex justify-content-between align-items-center" ${isDone ? 'style="opacity: 0.65;"' : ''}>
-          <div>
-            <b>${escapeHtml(t.title)}</b><br>
-            <span class="text-muted">📅 ${escapeHtml(t.dueDate)} | 👤 ${escapeHtml(t.salesPerson)}</span>
+        <div class="p-2 border-bottom d-flex justify-content-between align-items-center ${isDone ? 'bg-light' : ''}">
+          <div style="flex: 1; padding-right: 8px;">
+            <div class="${isDone ? 'text-decoration-line-through text-muted' : 'fw-bold text-dark'} extra-small">${escapeHtml(t.title)}</div>
+            <div class="extra-small text-muted">📅 ${escapeHtml(t.dueDate)} | 👤 ${escapeHtml(t.salesPerson)}</div>
           </div>
-          <div>${badge}</div>
+          <div class="d-flex align-items-center gap-1">
+            ${badge}
+            <button class="btn btn-xs ${isDone ? 'btn-outline-secondary' : 'btn-success'} py-0 px-2 extra-small" 
+                    onclick="toggleMobTaskStatus('${t.id}', '${isDone ? 'Pending' : 'Completed'}')">
+              ${isDone ? '↺' : '✔'}
+            </button>
+          </div>
         </div>
       `;
     }).join('');
