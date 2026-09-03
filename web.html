@@ -110,6 +110,7 @@
       </h4>
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item"><a class="nav-link active" id="tab-enquiry-btn" onclick="showTab('enquiry')">📋 Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" id="tab-todo-btn" onclick="showTab('todo')">✅ To-Do List</a></li>
         <li class="nav-item"><a class="nav-link" id="tab-customers-btn" onclick="showTab('customers')">👥 Customer Directory</a></li>
         <li class="nav-item"><a class="nav-link" id="tab-analytics-btn" onclick="showTab('analytics')">📊 Visual Analytics</a></li>
         <li class="nav-item"><a class="nav-link" id="tab-lost-btn" onclick="showTab('lost')">❌ Lost Enquiries</a></li>
@@ -439,6 +440,41 @@
         </div>
       </div>
 
+      <!-- MODULE: TO-DO LIST (CALENDAR VIEW) -->
+      <div id="todoModule" class="d-none">
+        <div class="card p-3 mb-3">
+          <div class="row align-items-center g-2">
+            <div class="col-md-4">
+              <h5 class="fw-bold text-primary mb-0"><i class="fa fa-calendar-check me-2"></i>Daily Tasks & To-Do Calendar</h5>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="d-inline-flex align-items-center gap-2 bg-light border px-3 py-1 rounded-pill">
+                <button class="btn btn-sm btn-link text-dark p-0" onclick="changeTodoCalendarMonth(-1)"><i class="fa fa-chevron-left"></i></button>
+                <span class="fw-bold text-dark px-2" id="todoCalMonthLabel" style="min-width: 140px;"></span>
+                <button class="btn btn-sm btn-link text-dark p-0" onclick="changeTodoCalendarMonth(1)"><i class="fa fa-chevron-right"></i></button>
+              </div>
+            </div>
+            <div class="col-md-4 text-md-end">
+              <label class="small text-muted me-1">Sales Person:</label>
+              <select id="todoFilterSalesPerson" onchange="renderTodoCalendar()" class="form-select form-select-sm d-inline-block w-auto">
+                <option value="ALL">All Team Member</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small text-muted"><i class="fa fa-info-circle me-1"></i> Kisi bhi date par click karke direct task add ya complete karein.</span>
+            <span class="badge bg-light text-dark border" id="todoTotalSummary">Pending: 0 | Completed: 0</span>
+          </div>
+          <div class="cal-header">
+            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+          </div>
+          <div class="cal-grid" id="todoCalendarDays"></div>
+        </div>
+      </div>
+
       <!-- MODULE 2: CUSTOMER DIRECTORY -->
       <div id="customersModule" class="d-none">
         <div class="card p-4">
@@ -646,6 +682,69 @@
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- TO-DO DATE POPUP MODAL -->
+<div class="modal fade" id="todoDateModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 rounded-4 shadow">
+      <div class="modal-header bg-primary text-white py-2">
+        <h6 class="modal-title fw-bold" id="todoModalDateTitle"><i class="fa fa-calendar-day me-2"></i>Tasks for Date</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <!-- Add New Task Form -->
+        <div class="p-3 mb-3 bg-light rounded-3 border">
+          <h6 class="fw-bold text-primary mb-2 small"><i class="fa fa-plus-circle me-1"></i> Add Task for this Date</h6>
+          <div class="row g-2">
+            <div class="col-md-5">
+              <label class="form-label small fw-bold mb-1">Sales Person</label>
+              <input class="form-control form-control-sm fw-bold" list="salesPersonsList" id="modalTodoSalesPerson" placeholder="Select salesperson...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold mb-1">Priority</label>
+              <select class="form-select form-select-sm" id="modalTodoPriority">
+                <option value="High">🔴 High</option>
+                <option value="Medium" selected>🟡 Medium</option>
+                <option value="Low">🟢 Low</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-sm btn-success fw-bold w-100" id="modalTodoSaveBtn" onclick="submitModalTodoTask()">
+                <i class="fa fa-save me-1"></i> Add Task
+              </button>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold mb-1">Task Title / Description *</label>
+              <input type="text" id="modalTodoTitle" class="form-control form-control-sm" placeholder="Enter task requirement, quotation follow-up, etc...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Task List for this Date -->
+        <h6 class="fw-bold small text-muted mb-2"><i class="fa fa-list me-1"></i> Scheduled Tasks for this Day</h6>
+        <div class="table-responsive" style="max-height: 240px;">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Status</th>
+                <th>Salesperson</th>
+                <th>Task Title</th>
+                <th>Priority</th>
+                <th class="text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="modalTodoTableBody">
+              <tr><td colspan="5" class="text-center text-muted py-2">No tasks on this date</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-sm btn-secondary fw-bold" data-bs-dismiss="modal">Close</button>
+      </div>
     </div>
   </div>
 </div>
@@ -987,11 +1086,33 @@
 
   let rawCustomers = [], masterSalesPersons = [], masterBrandsList = [];
   let loggedInUser = null, globalEnquiries = [], globalActivities = [];
+  let globalTasks = [];
   let filteredEnquiriesList = [], currentPage = 1, pageSize = 25;
   let powerBiChartInstance = null;
   let currentLeadPhone = '', currentLeadBrand = '';
   let calCurrentDate = new Date(), selectedActivityDateStr = '';
+  let todoCalCurrentDate = new Date(), selectedTodoDateStr = '';
   let userGeoCoords = null;
+
+  function normalizeDateForMatch(dStr) {
+    if (!dStr) return '';
+    dStr = String(dStr).trim();
+    if (dStr.indexOf('T') > -1) dStr = dStr.split('T')[0];
+    if (dStr.indexOf('/') > -1) {
+      var parts = dStr.split('/');
+      if (parts.length === 3) {
+        if (parts[2].length === 4) return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+        if (parts[0].length === 4) return parts[0] + '-' + parts[1].padStart(2, '0') + '-' + parts[2].padStart(2, '0');
+      }
+    }
+    if (dStr.indexOf('-') > -1) {
+      var p = dStr.split('-');
+      if (p.length === 3 && p[0].length === 2 && p[2].length === 4) {
+        return p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0');
+      }
+    }
+    return dStr;
+  }
 
   let bannerTimer = null;
   function showFloatingNotification(title, message) {
@@ -1052,7 +1173,6 @@
     initGeolocation();
   });
 
-  // Toggle Enquiry Form (Hide / Show)
   function toggleEnquiryForm() {
     const wrapper = document.getElementById('enquiryFormCollapseWrapper');
     const btn = document.getElementById('toggleEnquiryFormBtn');
@@ -1208,6 +1328,7 @@
     document.getElementById('salesPersonsList').innerHTML = spOptionsHtml;
     document.getElementById('filterSalesPerson').innerHTML = filterOpts;
     document.getElementById('actFilterSalesPerson').innerHTML = filterOpts;
+    if (document.getElementById('todoFilterSalesPerson')) document.getElementById('todoFilterSalesPerson').innerHTML = filterOpts;
     document.getElementById('exportSpSelect').innerHTML = exportSpOpts;
 
     const role = loggedInUser && loggedInUser.role ? loggedInUser.role.toLowerCase() : '';
@@ -1361,31 +1482,41 @@
     if (!data) return;
     globalEnquiries = data.enquiries || [];
     globalActivities = data.activities || [];
+    globalTasks = data.tasks || [];
     applyDashboardFilters();
     renderLostEnquiriesTable(globalEnquiries);
-    checkTodayReminders(globalEnquiries);
+    checkTodayReminders(globalEnquiries, globalTasks);
     renderPowerBiDashboard();
     renderActivityCalendarAndMatrix();
+    renderTodoCalendar();
   }
 
-  function checkTodayReminders(enquiries) {
+  function checkTodayReminders(enquiries, tasks) {
     const todayStr = new Date().toISOString().split('T')[0];
-    let todayLeadCount = 0, todayPayCount = 0;
+    let todayLeadCount = 0, todayPayCount = 0, todayTaskCount = 0;
 
     enquiries.forEach(e => {
       if (e.leadFollowup === todayStr && String(e.status).toLowerCase() !== 'won' && String(e.status).toLowerCase() !== 'lost') todayLeadCount++;
       if (e.paymentFollowup === todayStr && String(e.paymentStatus).toLowerCase() !== 'fully paid') todayPayCount++;
     });
 
+    if (tasks) {
+      tasks.forEach(t => {
+        if (normalizeDateForMatch(t.dueDate) === todayStr && String(t.status).toLowerCase() !== 'completed') {
+          todayTaskCount++;
+        }
+      });
+    }
+
     const banner = document.getElementById('reminderBanner');
     const textElem = document.getElementById('reminderText');
 
-    if (todayLeadCount > 0 || todayPayCount > 0) {
+    if (todayLeadCount > 0 || todayPayCount > 0 || todayTaskCount > 0) {
       if (banner && textElem) {
-        textElem.innerHTML = `You have <b>${todayLeadCount} Lead Follow-up(s)</b> and <b>${todayPayCount} Payment Follow-up(s)</b> scheduled for today (${todayStr}).`;
+        textElem.innerHTML = `You have <b>${todayLeadCount} Lead Follow-up(s)</b>, <b>${todayPayCount} Payment Follow-up(s)</b>, and <b>${todayTaskCount} Task(s)</b> scheduled for today (${todayStr}).`;
         banner.classList.remove('d-none');
       }
-      showFloatingNotification("Today's Reminders", `${todayLeadCount} Lead & ${todayPayCount} Payment follow-ups today!`);
+      showFloatingNotification("Today's Reminders", `${todayLeadCount} Lead, ${todayPayCount} Payment & ${todayTaskCount} Tasks today!`);
     } else {
       if (banner) banner.classList.add('d-none');
     }
@@ -1902,7 +2033,7 @@
     let won = 0, pipeline = 0, lost = 0;
     globalEnquiries.forEach(e => {
       let v = Number(e.value) || 0, s = String(e.status).toLowerCase();
-      if (s === 'won') won += v; else if (s === 'lost') lost += v; else pipeline += v;
+      if (s === 'won') won += v; else if (s !== 'lost') pipeline += v; else pipeline += v;
     });
 
     document.getElementById('statTotalEnq').innerText = globalEnquiries.length;
@@ -1939,14 +2070,170 @@
     powerBiChartInstance = new Chart(ctx, chartConfig);
   }
 
+  // --- TO-DO LIST CALENDAR LOGIC ---
+  function changeTodoCalendarMonth(step) {
+    todoCalCurrentDate.setMonth(todoCalCurrentDate.getMonth() + step);
+    renderTodoCalendar();
+  }
+
+  function renderTodoCalendar() {
+    const year = todoCalCurrentDate.getFullYear();
+    const month = todoCalCurrentDate.getMonth();
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const monthLabel = document.getElementById('todoCalMonthLabel');
+    if (monthLabel) monthLabel.innerText = `${monthNames[month]} ${year}`;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
+
+    const grid = document.getElementById('todoCalendarDays');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    for (let i = 0; i < firstDay; i++) {
+      grid.innerHTML += `<div class="cal-day empty"></div>`;
+    }
+
+    let monthPending = 0, monthCompleted = 0;
+
+    for (let d = 1; d <= totalDays; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const dayTasks = (globalTasks || []).filter(t => normalizeDateForMatch(t.dueDate) === dateStr && (selectedSp === 'ALL' || t.salesPerson === selectedSp));
+      
+      const pendingCount = dayTasks.filter(t => String(t.status).toLowerCase() !== 'completed').length;
+      const completedCount = dayTasks.filter(t => String(t.status).toLowerCase() === 'completed').length;
+
+      monthPending += pendingCount;
+      monthCompleted += completedCount;
+
+      let badgesHtml = '';
+      if (pendingCount > 0) badgesHtml += `<span class="badge bg-warning text-dark d-block mt-1">⏳ ${pendingCount} Pending</span>`;
+      if (completedCount > 0) badgesHtml += `<span class="badge bg-success d-block mt-1">✔ ${completedCount} Done</span>`;
+
+      grid.innerHTML += `
+        <div class="cal-day" onclick="openTodoDateModal('${dateStr}')">
+          <span class="day-num">${d}</span>
+          ${badgesHtml}
+          <i class="fa fa-plus add-hint-icon"></i>
+        </div>
+      `;
+    }
+
+    const summaryEl = document.getElementById('todoTotalSummary');
+    if (summaryEl) summaryEl.innerText = `Pending: ${monthPending} | Completed: ${monthCompleted}`;
+  }
+
+  function openTodoDateModal(dateStr) {
+    selectedTodoDateStr = dateStr;
+    const titleEl = document.getElementById('todoModalDateTitle');
+    if (titleEl) titleEl.innerHTML = `<i class="fa fa-calendar-day me-2"></i>Tasks for Date: ${dateStr}`;
+    
+    const taskInput = document.getElementById('modalTodoTitle');
+    if (taskInput) taskInput.value = '';
+
+    const spInput = document.getElementById('modalTodoSalesPerson');
+    const activeSpFilter = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
+    if (spInput) {
+      if (activeSpFilter !== 'ALL') {
+        spInput.value = activeSpFilter;
+      } else if (loggedInUser && loggedInUser.salesPerson) {
+        spInput.value = loggedInUser.salesPerson;
+      }
+    }
+
+    renderModalTodoList();
+    const modalEl = document.getElementById('todoDateModal');
+    if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
+
+  function renderModalTodoList() {
+    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
+    const tasks = (globalTasks || []).filter(t => normalizeDateForMatch(t.dueDate) === selectedTodoDateStr && (selectedSp === 'ALL' || t.salesPerson === selectedSp));
+    const tbody = document.getElementById('modalTodoTableBody');
+    if (!tbody) return;
+
+    if (!tasks || tasks.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">No tasks scheduled for this date.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = tasks.map(t => {
+      const isDone = String(t.status).toLowerCase() === 'completed';
+      const badge = isDone ? '<span class="badge bg-success">Done</span>' : '<span class="badge bg-warning text-dark">Pending</span>';
+      const priorityClass = t.priority === 'High' ? 'text-danger fw-bold' : (t.priority === 'Low' ? 'text-success' : 'text-dark');
+
+      return `
+        <tr ${isDone ? 'style="text-decoration: line-through; opacity: 0.65;"' : ''}>
+          <td>${badge}</td>
+          <td><b>${escapeHtml(t.salesPerson)}</b></td>
+          <td>${escapeHtml(t.title)}</td>
+          <td><span class="${priorityClass}">${escapeHtml(t.priority)}</span></td>
+          <td class="text-center">
+            <button class="btn btn-sm ${isDone ? 'btn-outline-secondary' : 'btn-success'} py-0 px-2" onclick="toggleTaskStatus('${t.id}', '${isDone ? 'Pending' : 'Completed'}')">
+              ${isDone ? 'Mark Pending' : '✔ Complete'}
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function submitModalTodoTask() {
+    const title = document.getElementById('modalTodoTitle').value.trim();
+    const sp = document.getElementById('modalTodoSalesPerson').value.trim();
+    const priority = document.getElementById('modalTodoPriority').value;
+
+    if (!title) {
+      alert("Please enter task description!");
+      return;
+    }
+
+    const btn = document.getElementById('modalTodoSaveBtn');
+    if (btn) { btn.disabled = true; btn.innerText = 'Adding...'; }
+
+    const payload = {
+      salesPerson: sp || (loggedInUser ? loggedInUser.salesPerson : ''),
+      title: title,
+      dueDate: selectedTodoDateStr,
+      priority: priority
+    };
+
+    const res = await callAppsScriptApi("saveToDoTask", payload);
+    if (btn) { btn.disabled = false; btn.innerText = 'Add Task'; }
+
+    if (res && res.success) {
+      showFloatingNotification("Task Added", `Task scheduled for ${selectedTodoDateStr}`);
+      document.getElementById('modalTodoTitle').value = '';
+      await loadDashboardData();
+      setTimeout(renderModalTodoList, 400);
+    } else {
+      showAlert('Error: ' + (res ? res.message : 'Failed to save task'), 'danger');
+    }
+  }
+
+  async function toggleTaskStatus(taskId, newStatus) {
+    const res = await callAppsScriptApi("toggleToDoTaskStatus", { taskId: taskId, newStatus: newStatus });
+    if (res && res.success) {
+      showFloatingNotification("Task Updated", `Task marked as ${newStatus}`);
+      await loadDashboardData();
+      setTimeout(renderModalTodoList, 400);
+    } else {
+      showAlert('Error: ' + (res ? res.message : 'Status update failed'), 'danger');
+    }
+  }
+
   function showTab(tabName, saveState = true) {
-    ['enquiry', 'customers', 'analytics', 'lost', 'activity'].forEach(t => {
-      document.getElementById(t + 'Module').classList.toggle('d-none', t !== tabName);
-      document.getElementById('tab-' + t + '-btn').classList.toggle('active', t === tabName);
+    ['enquiry', 'todo', 'customers', 'analytics', 'lost', 'activity'].forEach(t => {
+      const mod = document.getElementById(t + 'Module');
+      const btn = document.getElementById('tab-' + t + '-btn');
+      if (mod) mod.classList.toggle('d-none', t !== tabName);
+      if (btn) btn.classList.toggle('active', t === tabName);
     });
     if (tabName === 'customers') renderCustomerDirectoryTable();
     if (tabName === 'analytics') renderPowerBiDashboard();
     if (tabName === 'activity') renderActivityCalendarAndMatrix();
+    if (tabName === 'todo') renderTodoCalendar();
     if (saveState) localStorage.setItem('active_portal_tab', tabName);
   }
 
