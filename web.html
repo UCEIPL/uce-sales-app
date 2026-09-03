@@ -8,13 +8,19 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { background-color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.88rem; }
+    html, body {
+      background-color: #f8fafc;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 0.88rem;
+      overscroll-behavior: none !important;
+      -webkit-overscroll-behavior: none !important;
+    }
     .sidebar { background: #0f172a; color: #fff; min-height: 100vh; }
     .sidebar .nav-link { color: #94a3b8; font-weight: 500; border-radius: 8px; margin-bottom: 5px; cursor: pointer; }
     .sidebar .nav-link.active, .sidebar .nav-link:hover { color: #fff; background-color: #1e293b; }
     .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
     .form-label { font-weight: 600; font-size: 0.8rem; color: #475569; }
-    .table-responsive { max-height: 540px; overflow-y: auto; }
+    .table-responsive { max-height: 540px; overflow-y: auto; overscroll-behavior-y: contain; }
     .stat-card { border-left: 4px solid #0d6efd; }
     
     /* Calendar Styling */
@@ -193,6 +199,41 @@
               <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="filterTodayLeadFollowups()">Lead F/Up</button>
               <button class="btn btn-sm btn-outline-success py-1 px-2" onclick="filterTodayPaymentFollowups()">Payment F/Up</button>
               <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="clearReminderFilter()">Show All</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN TARGET UPDATE CARD -->
+        <div class="card p-3 mb-4 bg-light border d-none" id="adminTargetCard">
+          <h6 class="fw-bold text-primary mb-2"><i class="fa fa-edit me-1"></i> Manage / Set Salesperson Target (Admin)</h6>
+          <div class="row g-2">
+            <div class="col-md-3">
+              <label class="form-label">Select Salesperson</label>
+              <select id="adminTargetSp" class="form-select form-select-sm"></select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Select Month</label>
+              <select id="adminTargetMonth" class="form-select form-select-sm">
+                <option value="1">April</option>
+                <option value="2">May</option>
+                <option value="3">June</option>
+                <option value="4">July</option>
+                <option value="5">August</option>
+                <option value="6">September</option>
+                <option value="7">October</option>
+                <option value="8">November</option>
+                <option value="9">December</option>
+                <option value="10">January</option>
+                <option value="11">February</option>
+                <option value="12">March</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">New Target Amount (₹)</label>
+              <input type="number" id="adminTargetVal" class="form-control form-control-sm" placeholder="e.g. 2500000">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button type="button" class="btn btn-sm btn-success w-100 fw-bold" id="adminTargetBtn" onclick="submitAdminTargetUpdate()">Update Target</button>
             </div>
           </div>
         </div>
@@ -731,7 +772,7 @@
         </div>
 
         <div class="p-2 bg-light rounded border extra-small text-muted mb-2">
-          <i class="fa fa-info-circle me-1 text-primary"></i> Data will be exported in exact Google Sheet structure.
+          <i class="fa fa-info-circle me-1 text-primary"></i> Data will be exported in exact Google Sheet 20-columns structure including Follow-up dates and values.
         </div>
       </div>
       <div class="modal-footer py-2">
@@ -983,6 +1024,11 @@
   let todoCalCurrentDate = new Date();
   let selectedTodoDateStr = '';
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   function normalizeDateForMatch(dStr) {
     if (!dStr) return '';
     dStr = String(dStr).trim();
@@ -1036,12 +1082,17 @@
   }
 
   async function requestNotificationPermission() {
-    if (!('Notification' in window)) return;
+    if (!('Notification' in window)) {
+      showFloatingNotification("Notice", "This browser does not support native notifications.");
+      return;
+    }
     const permission = await Notification.requestPermission();
     const btn = document.getElementById('notifEnableBtn');
     if (permission === 'granted') {
       if (btn) btn.classList.add('d-none');
       showFloatingNotification("Active", "Push notifications enabled!");
+    } else {
+      showAlert("Notification permission was denied.", "warning");
     }
   }
 
@@ -1052,12 +1103,13 @@
       const gain = audioCtx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
       gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.3);
+      osc.stop(audioCtx.currentTime + 0.4);
     } catch (e) {}
   }
 
@@ -1087,8 +1139,15 @@
     const wrapper = document.getElementById('enquiryFormCollapseWrapper');
     const btn = document.getElementById('toggleEnquiryFormBtn');
     if (!wrapper || !btn) return;
-    wrapper.classList.toggle('d-none');
-    btn.innerHTML = wrapper.classList.contains('d-none') ? '<i class="fa fa-plus me-1"></i> Show / Create Enquiry' : '<i class="fa fa-eye-slash me-1"></i> Hide Form';
+    if (wrapper.classList.contains('d-none')) {
+      wrapper.classList.remove('d-none');
+      btn.innerHTML = '<i class="fa fa-eye-slash me-1"></i> Hide Form';
+      btn.classList.replace('btn-primary', 'btn-outline-primary');
+    } else {
+      wrapper.classList.add('d-none');
+      btn.innerHTML = '<i class="fa fa-plus me-1"></i> Show / Create Enquiry';
+      btn.classList.replace('btn-outline-primary', 'btn-primary');
+    }
   }
 
   function resetEnquiryForm() {
@@ -1099,6 +1158,7 @@
     if (document.getElementById('paymentTermsSelect')) document.getElementById('paymentTermsSelect').value = '0';
     
     updateBrandDropdownLabel();
+
     if (loggedInUser && loggedInUser.salesPerson) {
       const spInputEl = document.getElementById('salesPersonInput');
       if (spInputEl) spInputEl.value = loggedInUser.salesPerson;
@@ -1168,9 +1228,14 @@
     if (res && res.success) {
       if (masterBrandsList.indexOf(res.brand) === -1) masterBrandsList.push(res.brand);
       renderBrandCheckboxes(masterBrandsList);
+      setTimeout(() => {
+        const cbs = document.querySelectorAll('.brand-checkbox-input');
+        cbs.forEach(cb => { if (cb.value.toLowerCase() === res.brand.toLowerCase()) cb.checked = true; });
+        updateBrandDropdownLabel();
+      }, 100);
       input.value = '';
       toggleAddNewBrandInput();
-      showFloatingNotification("Brand Added", `Brand "${res.brand}" saved.`);
+      showFloatingNotification("Brand Added", `Brand "${res.brand}" saved successfully.`);
     } else {
       alert("Error: " + (res ? res.message : 'Failed'));
     }
@@ -1191,6 +1256,7 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('loggedUser').innerText = loggedInUser.salesPerson + " (" + loggedInUser.role + ")";
         fetchMasterData();
+        checkNotificationSupport();
       } catch (err) {
         logout();
       }
@@ -1233,7 +1299,10 @@
     const isMgmt = isAdmin || isManager;
 
     const adminTargetCard = document.getElementById('adminTargetCard');
-    if (adminTargetCard) adminTargetCard.classList.toggle('d-none', !isAdmin);
+    if (adminTargetCard) {
+      if (isAdmin) adminTargetCard.classList.remove('d-none');
+      else adminTargetCard.classList.add('d-none');
+    }
 
     const spInputEl = document.getElementById('salesPersonInput');
     const transferWrapper = document.getElementById('transferActionWrapper');
@@ -1259,31 +1328,47 @@
   }
 
   async function submitAdminTargetUpdate() {
+    const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
+    if (role.indexOf('admin') === -1) {
+      showAlert("Only Admin can set or update sales targets.", "danger");
+      return;
+    }
+
     const sp = document.getElementById('adminTargetSp').value;
     const month = document.getElementById('adminTargetMonth').value;
     const val = document.getElementById('adminTargetVal').value;
-    if (!sp || !val) { alert("Select salesperson & amount!"); return; }
+
+    if (!sp || !val) {
+      alert("Please select salesperson and enter target value!");
+      return;
+    }
+
+    const btn = document.getElementById('adminTargetBtn');
+    btn.disabled = true; btn.innerText = 'Updating...';
 
     const res = await callAppsScriptApi("updateSalespersonTargetFromPortal", { salesPerson: sp, monthCol: month, targetValue: val });
+    btn.disabled = false; btn.innerText = 'Update Target';
+
     if (res && res.success) {
       showFloatingNotification("Target Updated", res.message);
       document.getElementById('adminTargetVal').value = '';
       loadSidebarTargetInfo();
     } else {
-      alert("Error: " + (res ? res.message : 'Failed'));
+      showAlert("Error: " + (res ? res.message : 'Failed'), 'danger');
     }
   }
 
   function populateCustomerDatalist(customersList) {
     let options = '';
-    customersList.forEach(c => { options += `<option value="${c.name}">${c.name} (${c.city || 'N/A'})</option>`; });
+    customersList.forEach(c => { options += `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} (${escapeHtml(c.city || 'N/A')})</option>`; });
     document.getElementById('customersList').innerHTML = options;
   }
 
   function filterCustomersBySalesPerson() {
     const spInput = document.getElementById('salesPersonInput').value.trim().toLowerCase();
-    if (!spInput) populateCustomerDatalist(rawCustomers);
-    else {
+    if (!spInput) {
+      populateCustomerDatalist(rawCustomers);
+    } else {
       const filtered = rawCustomers.filter(c => String(c.salesPerson || '').toLowerCase().trim() === spInput || String(c.salesPerson || '').toLowerCase().trim().indexOf(spInput) > -1);
       populateCustomerDatalist(filtered);
     }
@@ -1293,9 +1378,12 @@
     const spInput = document.getElementById('modalActSalesPerson').value.trim().toLowerCase();
     const actList = document.getElementById('actCustomersList');
     if (!actList) return;
+
     let filtered = rawCustomers;
-    if (spInput) filtered = rawCustomers.filter(c => String(c.salesPerson || '').toLowerCase().trim() === spInput);
-    actList.innerHTML = filtered.map(c => `<option value="${c.name}">`).join('');
+    if (spInput) {
+      filtered = rawCustomers.filter(c => String(c.salesPerson || '').toLowerCase().trim() === spInput || String(c.salesPerson || '').toLowerCase().trim().indexOf(spInput) > -1);
+    }
+    actList.innerHTML = filtered.map(c => `<option value="${escapeHtml(c.name)}">`).join('');
   }
 
   function autoFillCustomerInfo() {
@@ -1331,6 +1419,7 @@
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('loggedUser').innerText = loggedInUser.salesPerson + " (" + loggedInUser.role + ")";
       fetchMasterData();
+      checkNotificationSupport();
       showFloatingNotification("Welcome", `Logged in as ${loggedInUser.salesPerson}`);
     } else {
       document.getElementById('loginError').innerText = res ? res.message : "Invalid Credentials";
@@ -1378,7 +1467,7 @@
     if (res && res.success) {
       showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
       resetEnquiryForm();
-      fetchMasterData(); // AUTO-REFRESHES DASHBOARD INSTANTLY
+      fetchMasterData();
     } else {
       showAlert('Error: ' + (res ? res.message : 'Failed'), 'danger');
     }
@@ -1414,7 +1503,9 @@
 
     if (tasks) {
       tasks.forEach(t => {
-        if (normalizeDateForMatch(t.dueDate) === todayStr && String(t.status).toLowerCase() !== 'completed') todayTaskCount++;
+        if (normalizeDateForMatch(t.dueDate) === todayStr && String(t.status).toLowerCase() !== 'completed') {
+          todayTaskCount++;
+        }
       });
     }
 
@@ -1423,10 +1514,10 @@
 
     if (todayLeadCount > 0 || todayPayCount > 0 || todayTaskCount > 0) {
       if (banner && textElem) {
-        textElem.innerHTML = `You have <b>${todayLeadCount} Lead(s)</b>, <b>${todayPayCount} Payment(s)</b>, and <b>${todayTaskCount} Task(s)</b> due today.`;
+        textElem.innerHTML = `You have <b>${todayLeadCount} Lead Follow-up(s)</b>, <b>${todayPayCount} Payment Follow-up(s)</b>, and <b>${todayTaskCount} Task(s)</b> scheduled for today (${todayStr}).`;
         banner.classList.remove('d-none');
       }
-      showFloatingNotification("Reminders", `${todayLeadCount} Leads, ${todayPayCount} Payments & ${todayTaskCount} Tasks today.`);
+      showFloatingNotification("Today's Reminders", `${todayLeadCount} Lead, ${todayPayCount} Payment & ${todayTaskCount} Tasks today!`);
     } else {
       if (banner) banner.classList.add('d-none');
     }
@@ -1466,10 +1557,13 @@
 
     if (searchVal) {
       filteredEnquiriesList = filteredEnquiriesList.filter(item => {
-        return String(item.id || '').toLowerCase().indexOf(searchVal) > -1 ||
-               String(item.customer || '').toLowerCase().indexOf(searchVal) > -1 ||
-               String(item.salesPerson || '').toLowerCase().indexOf(searchVal) > -1 ||
-               String(item.brand || '').toLowerCase().indexOf(searchVal) > -1;
+        return (
+          String(item.id || '').toLowerCase().indexOf(searchVal) > -1 ||
+          String(item.customer || '').toLowerCase().indexOf(searchVal) > -1 ||
+          String(item.salesPerson || '').toLowerCase().indexOf(searchVal) > -1 ||
+          String(item.brand || '').toLowerCase().indexOf(searchVal) > -1 ||
+          String(item.description || '').toLowerCase().indexOf(searchVal) > -1
+        );
       });
     }
 
@@ -1514,21 +1608,22 @@
         if (item.paymentStatus === 'Pending') payBadgeColor = 'bg-danger';
         if (item.paymentStatus === 'Credit') payBadgeColor = 'bg-dark text-white';
 
-        let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${item.leadFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
-        let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${item.paymentFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
+        let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${escapeHtml(item.leadFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
+        let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${escapeHtml(item.paymentFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
+        let duplicateWarningIcon = item.isDuplicate ? `<span class="badge bg-warning text-dark ms-1" title="${escapeHtml(item.isDuplicate)}">⚠️ Duplicate</span>` : '';
 
         rows += `
           <tr>
-            <td class="fw-bold">${item.id}</td>
-            <td>${item.date}</td>
-            <td><b>${escapeHtml(item.customer)}</b></td>
+            <td class="fw-bold">${escapeHtml(item.id)}</td>
+            <td>${escapeHtml(item.date)}</td>
+            <td><b>${escapeHtml(item.customer)}</b> ${duplicateWarningIcon}</td>
             <td class="fw-bold text-dark">${escapeHtml(item.salesPerson || '-')}</td>
             <td class="fw-bold text-success">₹${Number(item.value || 0).toLocaleString()}</td>
             <td>${leadFup}</td>
             <td><span class="badge ${payBadgeColor}">${escapeHtml(item.paymentStatus || 'Pending')}</span></td>
             <td>${payFup}</td>
             <td><span class="badge ${badgeColor}">${escapeHtml(item.status || 'New Lead')}</span></td>
-            <td><button type="button" class="btn btn-sm btn-primary py-0 px-2" onclick="openEditModal('${item.id}')">👁️ Details</button></td>
+            <td><button type="button" class="btn btn-sm btn-primary py-0 px-2" onclick="openEditModal('${escapeHtml(item.id)}')">👁️ Details</button></td>
           </tr>
         `;
       });
@@ -1653,7 +1748,7 @@
     const box = document.getElementById('dynamicCustomerDetailsBox');
     if (!cust) { box.innerHTML = '<div class="text-muted text-center">No sheet record</div>'; return; }
     let html = '<div class="row g-1">';
-    Object.keys(cust).forEach(k => { html += `<div class="col-6"><b>${k}:</b> ${cust[k]}</div>`; });
+    Object.keys(cust).forEach(k => { html += `<div class="col-6"><b>${escapeHtml(k)}:</b> ${escapeHtml(cust[k])}</div>`; });
     html += '</div>';
     box.innerHTML = html;
   }
@@ -1759,6 +1854,8 @@
       showFloatingNotification("Updated", res.message);
       bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
       loadDashboardData();
+    } else {
+      alert("Error: " + (res ? res.message : 'Failed'));
     }
   }
 
@@ -1806,7 +1903,7 @@
   function renderModalActivitiesList() {
     const acts = globalActivities.filter(a => a.date === selectedActivityDateStr);
     document.getElementById('modalActivityTable').innerHTML = acts.map(a => `
-      <tr><td><b>${escapeHtml(a.customer)}</b></td><td>${escapeHtml(a.salesPerson)}</td><td><span class="badge bg-info">${a.type}</span></td><td>${a.status === 'Yes' ? 'Connected' : 'Failed'}</td><td>${a.remark || '-'}</td></tr>
+      <tr><td><b>${escapeHtml(a.customer)}</b></td><td>${escapeHtml(a.salesPerson)}</td><td><span class="badge bg-info">${escapeHtml(a.type)}</span></td><td>${a.status === 'Yes' ? 'Connected' : 'Failed'}</td><td>${escapeHtml(a.remark || '-')}</td></tr>
     `).join('') || '<tr><td colspan="5" class="text-center text-muted py-2">No activity</td></tr>';
   }
 
@@ -1849,14 +1946,14 @@
 
     document.getElementById('matrixTotalSummary').innerText = `Total: ${calls} Calls | ${visits} Visits`;
     document.getElementById('monthlyMatrixTable').innerHTML = Object.keys(matrixMap).map(k => `
-      <tr><td><b>${k}</b></td><td>${matrixMap[k].sp}</td><td class="text-center">${matrixMap[k].calls}</td><td class="text-center">${matrixMap[k].visits}</td><td class="text-center">${matrixMap[k].calls + matrixMap[k].visits}</td><td>${matrixMap[k].remark || '-'}</td></tr>
+      <tr><td><b>${escapeHtml(k)}</b></td><td>${escapeHtml(matrixMap[k].sp)}</td><td class="text-center">${matrixMap[k].calls}</td><td class="text-center">${matrixMap[k].visits}</td><td class="text-center">${matrixMap[k].calls + matrixMap[k].visits}</td><td>${escapeHtml(matrixMap[k].remark || '-')}</td></tr>
     `).join('') || '<tr><td colspan="6" class="text-center text-muted">No records</td></tr>';
   }
 
   function renderLostEnquiriesTable(enquiries) {
     const lost = enquiries.filter(e => String(e.status).toLowerCase() === 'lost');
     document.getElementById('lostTableBody').innerHTML = lost.map(e => `
-      <tr><td><b>${e.id}</b></td><td>${e.date}</td><td>${e.customer}</td><td>${e.salesPerson}</td><td>₹${Number(e.value || 0).toLocaleString()}</td><td class="text-danger">${e.lostReason || '-'}</td></tr>
+      <tr><td><b>${escapeHtml(e.id)}</b></td><td>${escapeHtml(e.date)}</td><td>${escapeHtml(e.customer)}</td><td>${escapeHtml(e.salesPerson)}</td><td>₹${Number(e.value || 0).toLocaleString()}</td><td class="text-danger">${escapeHtml(e.lostReason || '-')}</td></tr>
     `).join('') || '<tr><td colspan="6" class="text-center text-muted">No lost enquiries</td></tr>';
   }
 
@@ -1994,7 +2091,7 @@
           <td>${escapeHtml(t.title)}</td>
           <td><span class="${priorityClass}">${escapeHtml(t.priority)}</span></td>
           <td class="text-center">
-            <button class="btn btn-sm ${isDone ? 'btn-outline-secondary' : 'btn-success'} py-0 px-2" onclick="toggleTaskStatus('${t.id}', '${isDone ? 'Pending' : 'Completed'}')">
+            <button class="btn btn-sm ${isDone ? 'btn-outline-secondary' : 'btn-success'} py-0 px-2" onclick="toggleTaskStatus('${escapeHtml(t.id)}', '${isDone ? 'Pending' : 'Completed'}')">
               ${isDone ? 'Mark Pending' : '✔ Complete'}
             </button>
           </td>
