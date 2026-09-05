@@ -300,6 +300,7 @@
               <option value="ALL">All Status</option>
               <option value="New Lead">New Lead</option>
               <option value="Hot lead">Hot lead</option>
+              <option value="Quoted">Quoted</option>
               <option value="Live">Live</option>
               <option value="Won">Won</option>
               <option value="Lost">Lost</option>
@@ -730,6 +731,7 @@
             <select id="editStatus" class="form-select" onchange="toggleModalLostReason()">
               <option value="New Lead">New Lead</option>
               <option value="Hot lead">Hot lead</option>
+              <option value="Quoted">Quoted</option>
               <option value="Live">Live</option>
               <option value="Won">Won</option>
               <option value="Lost">Lost</option>
@@ -1389,6 +1391,7 @@
       if (item.status === 'Won') bColor = 'bg-success';
       if (item.status === 'Lost') bColor = 'bg-danger';
       if (item.status === 'Live') bColor = 'bg-primary';
+      if (item.status === 'Quoted') bColor = 'bg-dark text-white';
       if (item.status === 'Hot lead') bColor = 'bg-warning text-dark';
 
       let payBadge = 'bg-secondary';
