@@ -940,7 +940,7 @@
             <label class="form-label">Approx Value (₹) *</label>
             <input type="number" id="editApproxValue" class="form-control form-control-sm fw-bold text-success">
           </div>
-          <div class="md-4">
+          <div class="col-md-4">
             <label class="form-label">Status *</label>
             <select id="editStatus" class="form-select form-select-sm fw-bold" onchange="toggleModalLostReason()">
               <option value="New Lead">New Lead</option>
@@ -995,6 +995,23 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // VERCEL API BRIDGE (Ensures smooth connection with Apps Script backend)
+  const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
+
+  async function callAppsScriptApi(action, data = {}) {
+    try {
+      const response = await fetch(APPS_SCRIPT_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: action, data: data })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error("API Call Error:", error);
+      return { success: false, message: error.toString() };
+    }
+  }
+
   let rawCustomers = [], masterSalesPersons = [], masterBrandsList = [];
   let loggedInUser = null, globalEnquiries = [], globalActivities = [];
   let globalTasks = [];
@@ -1200,30 +1217,28 @@
     if (!row.classList.contains('d-none')) document.getElementById('newCustomBrandInput').focus();
   }
 
-  function submitNewBrandPermanently() {
+  async function submitNewBrandPermanently() {
     const input = document.getElementById('newCustomBrandInput');
     const brandName = input.value.trim();
     if (!brandName) { alert("Please enter brand name!"); return; }
 
     const sp = loggedInUser ? loggedInUser.salesPerson : 'User';
-    google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.success) {
-          if (masterBrandsList.indexOf(res.brand) === -1) masterBrandsList.push(res.brand);
-          renderBrandCheckboxes(masterBrandsList);
-          setTimeout(() => {
-            const cbs = document.querySelectorAll('.brand-checkbox-input');
-            cbs.forEach(cb => { if (cb.value.toLowerCase() === res.brand.toLowerCase()) cb.checked = true; });
-            updateBrandDropdownLabel();
-          }, 100);
-          input.value = '';
-          toggleAddNewBrandInput();
-          showFloatingNotification("Brand Added", `Brand "${res.brand}" saved successfully.`);
-        } else {
-          alert("Error: " + res.message);
-        }
-      })
-      .addNewMasterBrand(brandName, sp);
+    const res = await callAppsScriptApi("addNewMasterBrand", { brandName: brandName, sp: sp });
+
+    if (res && res.success) {
+      if (masterBrandsList.indexOf(res.brand) === -1) masterBrandsList.push(res.brand);
+      renderBrandCheckboxes(masterBrandsList);
+      setTimeout(() => {
+        const cbs = document.querySelectorAll('.brand-checkbox-input');
+        cbs.forEach(cb => { if (cb.value.toLowerCase() === res.brand.toLowerCase()) cb.checked = true; });
+        updateBrandDropdownLabel();
+      }, 100);
+      input.value = '';
+      toggleAddNewBrandInput();
+      showFloatingNotification("Brand Added", `Brand "${res.brand}" saved successfully.`);
+    } else {
+      alert("Error: " + (res ? res.message : 'Failed'));
+    }
   }
 
   function getSelectedBrandsList() {
@@ -1250,11 +1265,9 @@
     }
   }
 
-  function fetchMasterData() {
-    google.script.run
-      .withSuccessHandler(onMasterDataLoaded)
-      .withFailureHandler(err => showAlert("Master Data Error: " + err.message, "danger"))
-      .getMasterData(loggedInUser);
+  async function fetchMasterData() {
+    const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
+    if (data) onMasterDataLoaded(data);
   }
 
   function onMasterDataLoaded(data) {
@@ -1314,7 +1327,7 @@
     setTimeout(loadSidebarTargetInfo, 600);
   }
 
-  function submitAdminTargetUpdate() {
+  async function submitAdminTargetUpdate() {
     const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
     if (role.indexOf('admin') === -1) {
       showAlert("Only Admin can set or update sales targets.", "danger");
@@ -1333,22 +1346,16 @@
     const btn = document.getElementById('adminTargetBtn');
     btn.disabled = true; btn.innerText = 'Updating...';
 
-    google.script.run
-      .withSuccessHandler(res => {
-        btn.disabled = false; btn.innerText = 'Update Target';
-        if (res && res.success) {
-          showFloatingNotification("Target Updated", res.message);
-          document.getElementById('adminTargetVal').value = '';
-          loadSidebarTargetInfo();
-        } else {
-          showAlert("Error: " + res.message, 'danger');
-        }
-      })
-      .withFailureHandler(err => {
-        btn.disabled = false; btn.innerText = 'Update Target';
-        showAlert("Server Error: " + err.message, 'danger');
-      })
-      .updateSalespersonTargetFromPortal({ salesPerson: sp, monthCol: month, targetValue: val });
+    const res = await callAppsScriptApi("updateSalespersonTargetFromPortal", { salesPerson: sp, monthCol: month, targetValue: val });
+    btn.disabled = false; btn.innerText = 'Update Target';
+
+    if (res && res.success) {
+      showFloatingNotification("Target Updated", res.message);
+      document.getElementById('adminTargetVal').value = '';
+      loadSidebarTargetInfo();
+    } else {
+      showAlert("Error: " + (res ? res.message : 'Failed'), 'danger');
+    }
   }
 
   function populateCustomerDatalist(customersList) {
@@ -1396,36 +1403,31 @@
     }
   }
 
-  function handleLoginSubmit(e) {
+  async function handleLoginSubmit(e) {
     e.preventDefault();
     const btn = document.getElementById('loginBtn');
     btn.disabled = true; btn.innerText = "Verifying...";
+    const u = document.getElementById('loginUsername').value.trim();
+    const p = document.getElementById('loginPassword').value.trim();
 
-    google.script.run
-      .withSuccessHandler(res => {
-        btn.disabled = false; btn.innerText = "Login";
-        if (res && res.success) {
-          loggedInUser = res.user;
-          localStorage.setItem('sales_portal_session', JSON.stringify(loggedInUser));
-          document.getElementById('loginScreen').style.display = 'none';
-          document.getElementById('loggedUser').innerText = res.user.salesPerson + " (" + res.user.role + ")";
-          fetchMasterData();
-          checkNotificationSupport();
-          showFloatingNotification("Welcome", `Logged in as ${loggedInUser.salesPerson}`);
-        } else {
-          document.getElementById('loginError').innerText = res.message || "Invalid Credentials";
-          document.getElementById('loginError').classList.remove('d-none');
-        }
-      })
-      .withFailureHandler(err => {
-        btn.disabled = false; btn.innerText = "Login";
-        document.getElementById('loginError').innerText = err.message;
-        document.getElementById('loginError').classList.remove('d-none');
-      })
-      .checkLogin(document.getElementById('loginUsername').value, document.getElementById('loginPassword').value);
+    const res = await callAppsScriptApi("checkLogin", { username: u, password: p });
+    btn.disabled = false; btn.innerText = "Login";
+
+    if (res && res.success) {
+      loggedInUser = res.user;
+      localStorage.setItem('sales_portal_session', JSON.stringify(loggedInUser));
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('loggedUser').innerText = loggedInUser.salesPerson + " (" + loggedInUser.role + ")";
+      fetchMasterData();
+      checkNotificationSupport();
+      showFloatingNotification("Welcome", `Logged in as ${loggedInUser.salesPerson}`);
+    } else {
+      document.getElementById('loginError').innerText = res ? res.message : "Invalid Credentials";
+      document.getElementById('loginError').classList.remove('d-none');
+    }
   }
 
-  function handleEnquirySubmit(e) {
+  async function handleEnquirySubmit(e) {
     e.preventDefault();
     const custName = document.getElementById('customerInput').value;
     const saveBtn = document.getElementById('saveEnquiryBtn');
@@ -1459,30 +1461,22 @@
       longitude: userGeoCoords ? userGeoCoords.longitude : ''
     };
 
-    google.script.run
-      .withSuccessHandler(res => {
-        saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
-        if (res && res.success) {
-          showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
-          resetEnquiryForm();
-          fetchMasterData();
-        } else {
-          showAlert('Error: ' + res.message, 'danger');
-        }
-      })
-      .withFailureHandler(err => {
-        saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
-        showAlert('Save Failed: ' + err.message, 'danger');
-      })
-      .saveEnquiry(formData);
+    const res = await callAppsScriptApi("saveEnquiry", formData);
+    saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
+
+    if (res && res.success) {
+      showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
+      resetEnquiryForm();
+      fetchMasterData();
+    } else {
+      showAlert('Error: ' + (res ? res.message : 'Failed'), 'danger');
+    }
   }
 
-  function loadDashboardData() {
+  async function loadDashboardData() {
     if (!loggedInUser) return;
-    google.script.run
-      .withSuccessHandler(renderDashboardData)
-      .withFailureHandler(err => showAlert("Dashboard Data Error: " + err.message, "danger"))
-      .getDashboardData(loggedInUser);
+    const data = await callAppsScriptApi("getDashboardData", { user: loggedInUser });
+    if (data) renderDashboardData(data);
   }
 
   function renderDashboardData(data) {
@@ -1648,7 +1642,7 @@
     document.getElementById('exportCustomDateRangeRow').classList.toggle('d-none', preset !== 'custom');
   }
 
-  function submitExportReportDownload() {
+  async function submitExportReportDownload() {
     const sp = document.getElementById('exportSpSelect').value;
     const preset = document.getElementById('exportPresetSelect').value;
     let fromDate = '', toDate = '';
@@ -1675,30 +1669,24 @@
     const btn = document.getElementById('exportSubmitBtn');
     btn.disabled = true; btn.innerText = 'Exporting...';
 
-    google.script.run
-      .withSuccessHandler(res => {
-        btn.disabled = false; btn.innerText = 'Download CSV';
-        if (res && res.success) {
-          if (!res.rows || res.rows.length === 0) { alert("No records match criteria."); return; }
-          let csvRows = [];
-          csvRows.push(res.headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(","));
-          res.rows.forEach(r => { csvRows.push(r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")); });
+    const res = await callAppsScriptApi("getEnquiriesExportData", { salesPerson: sp, fromDate: fromDate, toDate: toDate });
+    btn.disabled = false; btn.innerText = 'Download CSV';
 
-          const csvBlob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(csvBlob);
-          link.download = `Enquiries_${sp.replace(/\s+/g, '_')}_${preset}.csv`;
-          link.click();
-          bootstrap.Modal.getInstance(document.getElementById('exportReportModal')).hide();
-        } else {
-          alert("Export failed: " + (res ? res.message : 'Error'));
-        }
-      })
-      .withFailureHandler(err => {
-        btn.disabled = false; btn.innerText = 'Download CSV';
-        alert("Export Error: " + err.message);
-      })
-      .getEnquiriesExportData({ salesPerson: sp, fromDate: fromDate, toDate: toDate });
+    if (res && res.success) {
+      if (!res.rows || res.rows.length === 0) { alert("No records match criteria."); return; }
+      let csvRows = [];
+      csvRows.push(res.headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(","));
+      res.rows.forEach(r => { csvRows.push(r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")); });
+
+      const csvBlob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(csvBlob);
+      link.download = `Enquiries_${sp.replace(/\s+/g, '_')}_${preset}.csv`;
+      link.click();
+      bootstrap.Modal.getInstance(document.getElementById('exportReportModal')).hide();
+    } else {
+      alert("Export failed: " + (res ? res.message : 'Error'));
+    }
   }
 
   function toggleModalLostReason() {
@@ -1771,36 +1759,34 @@
     window.open(`https://wa.me/91${phone.replace(/\D/g,'')}?text=Hello,%20following%20up%20on%20your%20enquiry.`, '_blank');
   }
 
-  function modalExecuteSnooze() {
+  async function modalExecuteSnooze() {
     const id = document.getElementById('editEnqId').value;
     const type = document.getElementById('modalSnoozeType').value;
     const date = document.getElementById('modalSnoozeDate').value;
     if (!date) return alert("Select date");
 
-    google.script.run.withSuccessHandler(res => {
-      if (res && res.success) {
-        showFloatingNotification("Snooze Saved", res.message);
-        bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
-        loadDashboardData();
-      }
-    }).quickSnoozeEnquiry({ id, type, newDate: date, user: loggedInUser.salesPerson });
+    const res = await callAppsScriptApi("quickSnoozeEnquiry", { id, type, newDate: date, user: loggedInUser.salesPerson });
+    if (res && res.success) {
+      showFloatingNotification("Snooze Saved", res.message);
+      bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
+      loadDashboardData();
+    }
   }
 
-  function modalExecuteTransfer() {
+  async function modalExecuteTransfer() {
     const id = document.getElementById('editEnqId').value;
     const targetSp = document.getElementById('modalTransferSp').value;
     if (!targetSp) return alert("Select salesperson");
 
-    google.script.run.withSuccessHandler(res => {
-      if (res && res.success) {
-        showFloatingNotification("Transferred", res.message);
-        bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
-        loadDashboardData();
-      }
-    }).transferLeadOwner(id, targetSp, loggedInUser.salesPerson);
+    const res = await callAppsScriptApi("transferLeadOwner", { id, targetSp, user: loggedInUser.salesPerson });
+    if (res && res.success) {
+      showFloatingNotification("Transferred", res.message);
+      bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
+      loadDashboardData();
+    }
   }
 
-  function modalOpenCustomerLedger() {
+  async function modalOpenCustomerLedger() {
     const custName = document.getElementById('mCustName').innerText;
     if (!custName || custName === '-') return alert("Customer name not found!");
 
@@ -1837,17 +1823,16 @@
     document.getElementById('ledgerCustTitle').innerText = custName;
     new bootstrap.Modal(ledgerModalEl).show();
 
-    google.script.run.withSuccessHandler(ledger => {
-      const tbody = document.getElementById('dynamicLedgerTbody');
-      if (ledger && ledger.length > 0) {
-        tbody.innerHTML = ledger.map(l => `<tr><td><b>${escapeHtml(l.id)}</b></td><td>${escapeHtml(l.date)}</td><td><b>${escapeHtml(l.customer || custName)}</b></td><td>${escapeHtml(l.description)}</td><td>${escapeHtml(l.brand)}</td><td>₹${Number(l.value || 0).toLocaleString()}</td><td><span class="badge bg-primary">${escapeHtml(l.status)}</span></td><td><span class="badge bg-secondary">${escapeHtml(l.paymentStatus)}</span></td></tr>`).join('');
-      } else {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No prior history found.</td></tr>';
-      }
-    }).getCustomerLedgerHistory(custName);
+    const ledger = await callAppsScriptApi("getCustomerLedgerHistory", { customerName: custName });
+    const tbody = document.getElementById('dynamicLedgerTbody');
+    if (ledger && ledger.length > 0) {
+      tbody.innerHTML = ledger.map(l => `<tr><td><b>${escapeHtml(l.id)}</b></td><td>${escapeHtml(l.date)}</td><td><b>${escapeHtml(l.customer || custName)}</b></td><td>${escapeHtml(l.description)}</td><td>${escapeHtml(l.brand)}</td><td>₹${Number(l.value || 0).toLocaleString()}</td><td><span class="badge bg-primary">${escapeHtml(l.status)}</span></td><td><span class="badge bg-secondary">${escapeHtml(l.paymentStatus)}</span></td></tr>`).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No prior history found.</td></tr>';
+    }
   }
 
-  function saveFullLeadDetailsUpdate() {
+  async function saveFullLeadDetailsUpdate() {
     const st = document.getElementById('editStatus').value;
     if (st === 'Lost' && !document.getElementById('editLostReason').value.trim()) return alert("Lost reason required");
 
@@ -1864,17 +1849,14 @@
       remark: document.getElementById('editRemark').value
     };
 
-    google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.success) {
-          showFloatingNotification("Updated", res.message);
-          bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
-          loadDashboardData();
-        } else {
-          alert("Error: " + res.message);
-        }
-      })
-      .updateEnquiryFull(payload);
+    const res = await callAppsScriptApi("updateEnquiryFull", payload);
+    if (res && res.success) {
+      showFloatingNotification("Updated", res.message);
+      bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
+      loadDashboardData();
+    } else {
+      alert("Error: " + (res ? res.message : 'Failed'));
+    }
   }
 
   function changeCalendarMonth(step) {
@@ -1925,7 +1907,7 @@
     `).join('') || '<tr><td colspan="5" class="text-center text-muted py-2">No activity</td></tr>';
   }
 
-  function submitModalActivityRecord() {
+  async function submitModalActivityRecord() {
     const payload = {
       date: selectedActivityDateStr,
       salesPerson: document.getElementById('modalActSalesPerson').value.trim() || loggedInUser.salesPerson,
@@ -1936,15 +1918,14 @@
     };
     if (!payload.customer) return alert("Customer required");
 
-    google.script.run.withSuccessHandler(res => {
-      if (res && res.success) {
-        showFloatingNotification("Saved", res.message);
-        document.getElementById('modalActCustomer').value = '';
-        document.getElementById('modalActRemark').value = '';
-        loadDashboardData();
-        setTimeout(renderModalActivitiesList, 400);
-      }
-    }).saveActivity(payload);
+    const res = await callAppsScriptApi("saveActivity", payload);
+    if (res && res.success) {
+      showFloatingNotification("Saved", res.message);
+      document.getElementById('modalActCustomer').value = '';
+      document.getElementById('modalActRemark').value = '';
+      loadDashboardData();
+      setTimeout(renderModalActivitiesList, 400);
+    }
   }
 
   function renderMonthlyCustomerMatrix() {
@@ -1976,7 +1957,7 @@
     `).join('') || '<tr><td colspan="6" class="text-center text-muted">No lost enquiries</td></tr>';
   }
 
-  function renderPowerBiDashboard() {
+  async function renderPowerBiDashboard() {
     if (!globalEnquiries) return;
     const reportType = document.getElementById('powerBiReportSelect').value;
 
@@ -1991,33 +1972,33 @@
     document.getElementById('statPipelineValue').innerText = '₹' + pipeline.toLocaleString();
     document.getElementById('statLostValue').innerText = '₹' + lost.toLocaleString();
 
-    google.script.run.withSuccessHandler(res => {
-      if (!res || !res.success) return;
-      const ctx = document.getElementById('powerBiCanvas');
-      if (powerBiChartInstance) powerBiChartInstance.destroy();
+    const res = await callAppsScriptApi("getAdvancedAnalyticsData", { user: loggedInUser });
+    if (!res || !res.success) return;
 
-      let chartConfig = { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false } };
+    const ctx = document.getElementById('powerBiCanvas');
+    if (powerBiChartInstance) powerBiChartInstance.destroy();
 
-      if (reportType === 'funnel') {
-        const f = res.funnel;
-        chartConfig.data = { labels: ['New', 'Hot', 'Live', 'Won', 'Lost'], datasets: [{ label: 'Value (₹)', data: [f['New Lead'].value, f['Hot lead'].value, f['Live'].value, f['Won'].value, f['Lost'].value], backgroundColor: ['#6c757d', '#ffc107', '#0dcaf0', '#198754', '#dc3545'] }] };
-      } else if (reportType === 'brands') {
-        const b = res.brands, labels = Object.keys(b);
-        chartConfig.data = { labels: labels, datasets: [{ label: 'Won (₹)', data: labels.map(l => b[l].wonValue), backgroundColor: '#198754' }] };
-      } else if (reportType === 'marketing') {
-        const m = res.modes, labels = Object.keys(m);
-        chartConfig.type = 'doughnut';
-        chartConfig.data = { labels: labels, datasets: [{ data: labels.map(l => m[l].wonValue), backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#dc3545'] }] };
-      } else if (reportType === 'productivity') {
-        const sps = res.teamProductivity, labels = Object.keys(sps);
-        chartConfig.data = { labels: labels, datasets: [{ label: 'Won (₹)', data: labels.map(l => sps[l].wonRevenue), backgroundColor: '#198754' }] };
-      } else if (reportType === 'cashflow') {
-        const p = res.payments;
-        chartConfig.type = 'pie';
-        chartConfig.data = { labels: ['Paid', 'Advance', 'Partial', 'Pending', 'Credit'], datasets: [{ data: [p['Fully Paid']?.value || 0, p['Advance Received']?.value || 0, p['Partial']?.value || 0, p['Pending']?.value || 0, p['Credit']?.value || 0], backgroundColor: ['#198754', '#0dcaf0', '#ffc107', '#dc3545', '#0f172a'] }] };
-      }
-      powerBiChartInstance = new Chart(ctx, chartConfig);
-    }).getAdvancedAnalyticsData(loggedInUser);
+    let chartConfig = { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false } };
+
+    if (reportType === 'funnel') {
+      const f = res.funnel;
+      chartConfig.data = { labels: ['New', 'Hot', 'Live', 'Won', 'Lost'], datasets: [{ label: 'Value (₹)', data: [f['New Lead'].value, f['Hot lead'].value, f['Live'].value, f['Won'].value, f['Lost'].value], backgroundColor: ['#6c757d', '#ffc107', '#0dcaf0', '#198754', '#dc3545'] }] };
+    } else if (reportType === 'brands') {
+      const b = res.brands, labels = Object.keys(b);
+      chartConfig.data = { labels: labels, datasets: [{ label: 'Won (₹)', data: labels.map(l => b[l].wonValue), backgroundColor: '#198754' }] };
+    } else if (reportType === 'marketing') {
+      const m = res.modes, labels = Object.keys(m);
+      chartConfig.type = 'doughnut';
+      chartConfig.data = { labels: labels, datasets: [{ data: labels.map(l => m[l].wonValue), backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#dc3545'] }] };
+    } else if (reportType === 'productivity') {
+      const sps = res.teamProductivity, labels = Object.keys(sps);
+      chartConfig.data = { labels: labels, datasets: [{ label: 'Won (₹)', data: labels.map(l => sps[l].wonRevenue), backgroundColor: '#198754' }] };
+    } else if (reportType === 'cashflow') {
+      const p = res.payments;
+      chartConfig.type = 'pie';
+      chartConfig.data = { labels: ['Paid', 'Advance', 'Partial', 'Pending', 'Credit'], datasets: [{ data: [p['Fully Paid']?.value || 0, p['Advance Received']?.value || 0, p['Partial']?.value || 0, p['Pending']?.value || 0, p['Credit']?.value || 0], backgroundColor: ['#198754', '#0dcaf0', '#ffc107', '#dc3545', '#0f172a'] }] };
+    }
+    powerBiChartInstance = new Chart(ctx, chartConfig);
   }
 
   function changeTodoCalendarMonth(step) {
@@ -2119,7 +2100,7 @@
     }).join('');
   }
 
-  function submitModalTodoTask() {
+  async function submitModalTodoTask() {
     const title = document.getElementById('modalTodoTitle').value.trim();
     const sp = document.getElementById('modalTodoSalesPerson').value.trim();
     const priority = document.getElementById('modalTodoPriority').value;
@@ -2136,34 +2117,28 @@
       priority: priority
     };
 
-    google.script.run
-      .withSuccessHandler(res => {
-        if (btn) { btn.disabled = false; btn.innerText = 'Add Task'; }
-        if (res && res.success) {
-          showFloatingNotification("Task Added", `Task scheduled for ${selectedTodoDateStr}`);
-          document.getElementById('modalTodoTitle').value = '';
-          loadDashboardData();
-          setTimeout(renderModalTodoList, 400);
-        } else {
-          showAlert('Error: ' + res.message, 'danger');
-        }
-      })
-      .withFailureHandler(err => {
-        if (btn) { btn.disabled = false; btn.innerText = 'Add Task'; }
-        showAlert('Failed: ' + err.message, 'danger');
-      })
-      .saveToDoTask(payload);
+    const res = await callAppsScriptApi("saveToDoTask", payload);
+    if (btn) { btn.disabled = false; btn.innerText = 'Add Task'; }
+
+    if (res && res.success) {
+      showFloatingNotification("Task Added", `Task scheduled for ${selectedTodoDateStr}`);
+      document.getElementById('modalTodoTitle').value = '';
+      await loadDashboardData();
+      setTimeout(renderModalTodoList, 400);
+    } else {
+      showAlert('Error: ' + (res ? res.message : 'Failed'), 'danger');
+    }
   }
 
-  function toggleTaskStatus(taskId, newStatus) {
-    google.script.run.withSuccessHandler(res => {
-      if (res && res.success) {
-        loadDashboardData();
-        setTimeout(renderModalTodoList, 400);
-      } else {
-        showAlert('Error: ' + res.message, 'danger');
-      }
-    }).toggleToDoTaskStatus({ taskId: taskId, newStatus: newStatus });
+  async function toggleTaskStatus(taskId, newStatus) {
+    const res = await callAppsScriptApi("toggleToDoTaskStatus", { taskId: taskId, newStatus: newStatus });
+    if (res && res.success) {
+      showFloatingNotification("Task Updated", `Task marked as ${newStatus}`);
+      await loadDashboardData();
+      setTimeout(renderModalTodoList, 400);
+    } else {
+      showAlert('Error: ' + (res ? res.message : 'Status update failed'), 'danger');
+    }
   }
 
   function showTab(tabName, saveState = true) {
@@ -2199,40 +2174,53 @@
 
     if (!targetSp) return;
 
-    google.script.run
-      .withSuccessHandler(res => {
-        if (!res) return;
-        const mTarget = res.monthlyTarget || 0;
-        const mAchieved = res.monthlyAchieved || 0;
-        const mBalance = res.monthlyBalance || 0;
-        const mPct = res.monthlyPct || 0;
-        
-        document.getElementById('mTargetText').innerHTML = `₹${mAchieved.toLocaleString()} / ₹${mTarget.toLocaleString()}`;
-        document.getElementById('mProgressBar').style.width = Math.min(mPct, 100) + '%';
-        document.getElementById('mPctText').innerText = mPct + '% Done';
-        document.getElementById('mBalanceText').innerText = 'Bal: ₹' + mBalance.toLocaleString();
+    const res = await callAppsScriptApi("getSalespersonTargetInfo", { targetSp: targetSp, user: loggedInUser });
+    if (res) {
+      const mTarget = res.monthlyTarget || 0;
+      const mAchieved = res.monthlyAchieved || 0;
+      const mBalance = res.monthlyBalance || 0;
+      const mPct = res.monthlyPct || 0;
+      
+      const mTargetText = document.getElementById('mTargetText');
+      const mProgressBar = document.getElementById('mProgressBar');
+      const mPctText = document.getElementById('mPctText');
+      const mBalanceText = document.getElementById('mBalanceText');
 
-        const qTarget = res.quarterlyTarget || 0;
-        const qAchieved = res.quarterlyAchieved || 0;
-        const qBalance = res.quarterlyBalance || 0;
-        const qPct = res.quarterlyPct || 0;
-        
-        document.getElementById('qTargetText').innerHTML = `₹${qAchieved.toLocaleString()} / ₹${qTarget.toLocaleString()}`;
-        document.getElementById('qProgressBar').style.width = Math.min(qPct, 100) + '%';
-        document.getElementById('qPctText').innerText = qPct + '% Done';
-        document.getElementById('qBalanceText').innerText = 'Bal: ₹' + qBalance.toLocaleString();
+      if (mTargetText) mTargetText.innerHTML = `₹${mAchieved.toLocaleString()} / ₹${mTarget.toLocaleString()}`;
+      if (mProgressBar) mProgressBar.style.width = Math.min(mPct, 100) + '%';
+      if (mPctText) mPctText.innerText = mPct + '% Done';
+      if (mBalanceText) mBalanceText.innerText = 'Bal: ₹' + mBalance.toLocaleString();
 
-        const aTarget = res.annualTarget || 0;
-        const aAchieved = res.annualAchieved || 0;
-        const aBalance = res.annualBalance || 0;
-        const aPct = res.annualPct || 0;
-        
-        document.getElementById('aTargetText').innerHTML = `₹${aAchieved.toLocaleString()} / ₹${aTarget.toLocaleString()}`;
-        document.getElementById('aProgressBar').style.width = Math.min(aPct, 100) + '%';
-        document.getElementById('aPctText').innerText = aPct + '% Done';
-        document.getElementById('aBalanceText').innerText = 'Bal: ₹' + aBalance.toLocaleString();
-      })
-      .getSalespersonTargetInfo(targetSp, loggedInUser);
+      const qTarget = res.quarterlyTarget || 0;
+      const qAchieved = res.quarterlyAchieved || 0;
+      const qBalance = res.quarterlyBalance || 0;
+      const qPct = res.quarterlyPct || 0;
+      
+      const qTargetText = document.getElementById('qTargetText');
+      const qProgressBar = document.getElementById('qProgressBar');
+      const qPctText = document.getElementById('qPctText');
+      const qBalanceText = document.getElementById('qBalanceText');
+
+      if (qTargetText) qTargetText.innerHTML = `₹${qAchieved.toLocaleString()} / ₹${qTarget.toLocaleString()}`;
+      if (qProgressBar) qProgressBar.style.width = Math.min(qPct, 100) + '%';
+      if (qPctText) qPctText.innerText = qPct + '% Done';
+      if (qBalanceText) qBalanceText.innerText = 'Bal: ₹' + qBalance.toLocaleString();
+
+      const aTarget = res.annualTarget || 0;
+      const aAchieved = res.annualAchieved || 0;
+      const aBalance = res.annualBalance || 0;
+      const aPct = res.annualPct || 0;
+      
+      const aTargetText = document.getElementById('aTargetText');
+      const aProgressBar = document.getElementById('aProgressBar');
+      const aPctText = document.getElementById('aPctText');
+      const aBalanceText = document.getElementById('aBalanceText');
+
+      if (aTargetText) aTargetText.innerHTML = `₹${aAchieved.toLocaleString()} / ₹${aTarget.toLocaleString()}`;
+      if (aProgressBar) aProgressBar.style.width = Math.min(aPct, 100) + '%';
+      if (aPctText) aPctText.innerText = aPct + '% Done';
+      if (aBalanceText) aBalanceText.innerText = 'Bal: ₹' + aBalance.toLocaleString();
+    }
   }
 </script>
 
