@@ -947,6 +947,7 @@
               <option value="New Lead">New Lead</option>
               <option value="Hot lead">Hot lead</option>
               <option value="Live">Live</option>
+              <option value="Quoted">Quoted</option>
               <option value="Won">Won</option>
               <option value="Lost">Lost</option>
             </select>
@@ -1600,6 +1601,7 @@
         if (item.status === 'Won') badgeColor = 'bg-success';
         if (item.status === 'Lost') badgeColor = 'bg-danger';
         if (item.status === 'Live') badgeColor = 'bg-primary';
+        if (item.status === 'Quoted') badgeColor = 'bg-dark text-white';
         if (item.status === 'Hot lead') badgeColor = 'bg-warning text-dark';
         
         let payBadgeColor = 'bg-secondary';
