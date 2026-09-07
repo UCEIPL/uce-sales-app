@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+Put your HTML text here<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1437,6 +1437,10 @@
 
     const brandValue = getSelectedBrandsList();
     const termsSelect = document.getElementById('paymentTermsSelect');
+    const spVal = document.getElementById('salesPersonInput').value || loggedInUser.salesPerson;
+    const approxVal = document.getElementById('approxValue').value;
+    const dateVal = document.getElementById('enquiryDate').value;
+    const payStatusVal = document.getElementById('paymentStatus').value;
 
     const formData = {
       customer: custName,
@@ -1445,14 +1449,14 @@
       contactPerson: document.getElementById('custContactPerson').value,
       mobile: document.getElementById('custMobile').value,
       email: document.getElementById('custEmail').value,
-      salesPerson: document.getElementById('salesPersonInput').value || loggedInUser.salesPerson,
+      salesPerson: spVal,
       description: document.getElementById('description').value,
       brand: brandValue,
-      approxValue: document.getElementById('approxValue').value,
+      approxValue: approxVal,
       mode: document.getElementById('mode').value,
-      enquiryDate: document.getElementById('enquiryDate').value,
+      enquiryDate: dateVal,
       expectedClose: document.getElementById('expectedClose').value,
-      paymentStatus: document.getElementById('paymentStatus').value,
+      paymentStatus: payStatusVal,
       leadFollowup: document.getElementById('leadFollowup').value,
       paymentTerms: termsSelect.options[termsSelect.selectedIndex].text,
       paymentTermsDays: termsSelect.value,
@@ -1463,15 +1467,35 @@
       longitude: userGeoCoords ? userGeoCoords.longitude : ''
     };
 
-    const res = await callAppsScriptApi("saveEnquiry", formData);
+    // --- INSTANT OPTIMISTIC UI UPDATE (Bina wait kiye screen par show karega) ---
+    const tempId = 'UCE-TEMP-' + Math.floor(Math.random() * 1000);
+    const optimisticItem = {
+      id: tempId,
+      date: dateVal,
+      customer: custName,
+      salesPerson: spVal,
+      value: Number(approxVal) || 0,
+      leadFollowup: formData.leadFollowup,
+      paymentStatus: payStatusVal,
+      paymentFollowup: formData.paymentFollowup,
+      status: 'New Lead',
+      brand: brandValue
+    };
+    
+    globalEnquiries.unshift(optimisticItem);
+    applyDashboardFilters(); // UI instantly update ho jayegi
+    resetEnquiryForm();
     saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
+    // --------------------------------------------------------------------------
 
+    // Background server call
+    const res = await callAppsScriptApi("saveEnquiry", formData);
     if (res && res.success) {
-      showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
-      resetEnquiryForm();
-      fetchMasterData();
+      showFloatingNotification("Success", res.message);
+      loadDashboardData(); // Real server data se sync kar lega
     } else {
       showAlert('Error: ' + (res ? res.message : 'Failed'), 'danger');
+      loadDashboardData(); // Error hone par revert kar dega
     }
   }
 
