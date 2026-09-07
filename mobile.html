@@ -1158,8 +1158,15 @@
       if (el) el.classList.toggle('d-none', t !== tab);
       if (nb) nb.classList.toggle('active', t === tab);
     });
+    
     const mainContent = document.getElementById('mainScrollContainer');
     if (mainContent) mainContent.scrollTop = 0;
+
+    // Jaise hi aap koi bhi tab change karenge, yeh background me turant data refresh kar dega
+    if (loggedInUser) {
+      loadDashboard();
+    }
+
     if (tab === 'analytics') renderMobilePowerBiDashboard();
     if (tab === 'calls') renderMobileCalendarAndSummary();
     if (tab === 'todo') renderMobileTodoCalendarAndSummary();
