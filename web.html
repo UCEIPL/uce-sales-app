@@ -1859,33 +1859,50 @@
     }
   }
 
-  async function saveFullLeadDetailsUpdate() {
-    const st = document.getElementById('editStatus').value;
-    if (st === 'Lost' && !document.getElementById('editLostReason').value.trim()) return alert("Lost reason required");
+ async function saveFullLeadDetailsUpdate() {
+    const stVal = document.getElementById('editStatus').value;
+    const lostReasonVal = document.getElementById('editLostReason').value;
+
+    if (stVal === 'Lost' && !lostReasonVal.trim()) {
+      showAlert("Lost Reason is required!", "danger");
+      return;
+    }
+
+    const saveBtn = document.getElementById('saveUpdateBtn');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving Updates...';
+    }
 
     const payload = {
       id: document.getElementById('editEnqId').value,
       approxValue: document.getElementById('editApproxValue').value,
-      status: st,
+      status: stVal,
       paymentStatus: document.getElementById('editPaymentStatus').value,
       leadFollowup: document.getElementById('editLeadFollowup').value,
       paymentTerms: document.getElementById('editPaymentTerms').value,
       paymentFollowup: document.getElementById('editPaymentFollowup').value,
       dispatch: document.getElementById('editDispatch').value,
-      lostReason: document.getElementById('editLostReason').value,
+      lostReason: lostReasonVal,
       remark: document.getElementById('editRemark').value
     };
 
     const res = await callAppsScriptApi("updateEnquiryFull", payload);
+    
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fa fa-save me-1"></i> Save Updates';
+    }
+
     if (res && res.success) {
-      showFloatingNotification("Updated", res.message);
-      bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
+      showFloatingNotification("Updated Successfully", `Enquiry ${payload.id} updated to ${payload.status}`);
+      const modalEl = document.getElementById('leadDetailsModal');
+      if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboardData();
     } else {
-      alert("Error: " + (res ? res.message : 'Failed'));
+      showAlert("Failed: " + (res ? res.message : 'Error'), "danger");
     }
   }
-
   function changeCalendarMonth(step) {
     calCurrentDate.setMonth(calCurrentDate.getMonth() + step);
     renderActivityCalendarAndMatrix();
