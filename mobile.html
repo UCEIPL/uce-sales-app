@@ -1772,8 +1772,13 @@
       return;
     }
 
+    // --- BUTTON LOADING STATE (Taki click hote hi pata chale) ---
     const saveBtn = document.getElementById('saveUpdateBtn');
-    saveBtn.disabled = true; saveBtn.innerText = "Saving to Google Sheet...";
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving Updates...';
+    }
+    // -------------------------------------------------------------
 
     const payload = {
       id: document.getElementById('editEnqId').value,
@@ -1789,17 +1794,22 @@
     };
 
     const res = await callAppsScriptApi("updateEnquiryFull", payload);
-    saveBtn.disabled = false; saveBtn.innerText = "SAVE ALL UPDATES";
+    
+    // Reset button state
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = "SAVE ALL UPDATES";
+    }
 
     if (res && res.success) {
-      showFloatingNotification("Updated Successfully", `Enquiry ${payload.id} status updated to ${payload.status}`);
-      bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal')).hide();
+      showFloatingNotification("Updated Successfully", `Enquiry ${payload.id} updated to ${payload.status}`);
+      const modalEl = document.getElementById('leadDetailsModal');
+      if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboard();
     } else {
       showAlert("Failed: " + (res ? res.message : 'Error'), "danger");
     }
   }
-
   function changeMobileCalendarMonth(step) {
     mobCalDate.setMonth(mobCalDate.getMonth() + step);
     renderMobileCalendarAndSummary();
