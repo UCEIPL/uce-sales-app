@@ -127,16 +127,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // Aapka Apps Script Executable URL
   const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
   
-  // LocalStorage se logged-in user uthayega (jo main portal save karta hai)
   let loggedInUser = JSON.parse(localStorage.getItem('sales_portal_session') || '{"salesPerson":"Test Engineer"}');
   let capturedLocation = '';
 
   window.addEventListener('DOMContentLoaded', () => {
-    if (!loggedInUser.salesPerson) {
-      loggedInUser = { salesPerson: "Engineer" };
+    if (!loggedInUser || !loggedInUser.salesPerson) {
+      loggedInUser = { salesPerson: "Engineer", role: "Field User" };
     }
     document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('userRoleSubtitle').innerText = `${loggedInUser.salesPerson} (${loggedInUser.role || 'Field User'})`;
@@ -149,7 +147,7 @@
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(pos => {
         capturedLocation = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-      }, err => { capturedLocation = 'Location Denied'; }, { timeout: 10000 });
+      }, err => { capturedLocation = ''; }, { timeout: 10000 });
     }
   }
 
@@ -171,8 +169,7 @@
   function calculateBikeExpense() {
     const start = parseFloat(document.getElementById('cnvStartMeter').value) || 0;
     const end = parseFloat(document.getElementById('cnvEndMeter').value) || 0;
-    let km = 0;
-    if (end > start) km = end - start;
+    let km = (end > start) ? (end - start) : 0;
 
     document.getElementById('lblTotalKm').innerText = km;
     const bikeCost = km * 3.5;
@@ -182,17 +179,9 @@
 
   function calculateTotalAmount() {
     const type = document.getElementById('cnvType').value;
-    let travelAmt = 0;
-
-    if (type === 'Bike') {
-      travelAmt = parseFloat(document.getElementById('lblTravelCost').innerText) || 0;
-    } else {
-      travelAmt = parseFloat(document.getElementById('cnvTravelAmt').value) || 0;
-    }
-
+    let travelAmt = (type === 'Bike') ? (parseFloat(document.getElementById('lblTravelCost').innerText) || 0) : (parseFloat(document.getElementById('cnvTravelAmt').value) || 0);
     const otherAmt = parseFloat(document.getElementById('cnvOtherAmt').value) || 0;
-    const total = travelAmt + otherAmt;
-    document.getElementById('lblTotalClaim').innerText = total.toFixed(2);
+    document.getElementById('lblTotalClaim').innerText = (travelAmt + otherAmt).toFixed(2);
   }
 
   async function callAppsScriptApi(action, data = {}) {
@@ -231,7 +220,7 @@
 
     const payload = {
       date: document.getElementById('cnvDate').value,
-      salesPerson: loggedInUser.salesPerson,
+      salesPerson: loggedInUser.salesPerson || 'Engineer',
       client: document.getElementById('cnvClient').value,
       purpose: document.getElementById('cnvPurpose').value,
       type: type,
@@ -250,13 +239,13 @@
     btn.disabled = false; btn.innerText = 'Submit Expense Claim';
 
     if (res && res.success) {
-      alert(res.message);
+      showCreativeToast("Success!", res.message || "Expense claim submitted successfully!", "success");
       document.getElementById('conveyanceForm').reset();
       document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
       toggleTravelModeFields();
       loadConveyanceHistory();
     } else {
-      alert("Error: " + (res ? res.message : 'Failed'));
+      showCreativeToast("Error", res ? res.message : "Failed to submit expense.", "danger");
     }
   }
 
@@ -269,24 +258,31 @@
   }
 
   async function loadConveyanceHistory() {
+    const tbody = document.getElementById('conveyanceTableBody');
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-1"></i> Loading records...</td></tr>`;
+
     const res = await callAppsScriptApi('getConveyanceData', { user: loggedInUser });
-    if (!res || !res.success) return;
+    
+    if (!res || !res.success) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Failed to load history</td></tr>`;
+      return;
+    }
 
     const records = res.records || [];
-    let tbody = '';
+    let html = '';
     let monthlySum = 0;
 
     records.forEach(r => {
       monthlySum += Number(r.totalAmt) || 0;
-      let photoLink = r.imageUrl ? `<a href="${r.imageUrl}" target="_blank" class="btn btn-xxs btn-outline-primary py-0">View Photo</a>` : 'No Photo';
-      let locText = r.location ? `<br><small class="text-muted"><i class="fa fa-map-marker-alt text-danger"></i> ${r.location}</small>` : '';
+      let photoLink = r.imageUrl ? `<a href="${r.imageUrl}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-1" style="font-size: 0.7rem;"><i class="fa fa-image"></i> View</a>` : '<span class="text-muted">No Photo</span>';
+      let locText = r.location ? `<br><small class="text-muted" style="font-size: 0.65rem;"><i class="fa fa-map-marker-alt text-danger"></i> ${r.location}</small>` : '';
 
-      tbody += `
+      html += `
         <tr>
           <td>${r.date}</td>
           <td><b>${r.client}</b><br><small class="text-muted">${r.purpose}</small>${locText}</td>
           <td><span class="badge bg-secondary">${r.type}</span></td>
-          <td>${r.type === 'Bike' ? r.totalKm + ' KM' : 'Manual'}</td>
+          <td>${r.type === 'Bike' ? r.totalKm + ' KM' : '₹' + r.bikeAmt}</td>
           <td>₹${r.otherAmt}</td>
           <td class="fw-bold text-success">₹${r.totalAmt}</td>
           <td>${photoLink}</td>
@@ -294,8 +290,38 @@
       `;
     });
 
-    document.getElementById('conveyanceTableBody').innerHTML = tbody || '<tr><td colspan="7" class="text-center text-muted">No records found.</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="7" class="text-center text-muted py-3">No records found.</td></tr>';
     document.getElementById('monthlyTotalDisplay').innerText = monthlySum.toLocaleString();
+  }
+
+  // --- CREATIVE TOAST POPUP FUNCTION ---
+  function showCreativeToast(title, message, type = 'success') {
+    let existingToast = document.getElementById('creativeToastContainer');
+    if (existingToast) existingToast.remove();
+
+    const bgCol = type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)';
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+    const toastHTML = `
+      <div id="creativeToastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 99999; animation: slideInDown 0.4s ease, fadeOut 0.4s ease 3.6s;">
+        <div style="background: ${bgCol}; color: white; padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 12px; min-width: 280px; font-family: sans-serif;">
+          <i class="fa ${icon} fs-4"></i>
+          <div>
+            <div style="font-weight: bold; font-size: 0.95rem;">${title}</div>
+            <div style="font-size: 0.82rem; opacity: 0.9;">${message}</div>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes slideInDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+      </style>
+    `;
+    document.body.insertAdjacentHTML('beforeend', toastHTML);
+    setTimeout(() => {
+      let t = document.getElementById('creativeToastContainer');
+      if (t) t.remove();
+    }, 4000);
   }
 </script>
 
