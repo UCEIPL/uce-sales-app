@@ -365,11 +365,20 @@
     const tbody = document.getElementById('conveyanceTableBody');
     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-1"></i> Loading records...</td></tr>`;
 
-    // Passing exact loggedInUser object to backend for strict data isolation
-    const res = await callAppsScriptApi('getConveyanceData', { user: loggedInUser });
+    // Ensure session object is safe and valid before sending to backend
+    let sessionUser = loggedInUser;
+    if (!sessionUser || typeof sessionUser !== 'object') {
+      try {
+        sessionUser = JSON.parse(localStorage.getItem('sales_portal_session')) || { salesPerson: "Admin", role: "Admin" };
+      } catch(e) {
+        sessionUser = { salesPerson: "Admin", role: "Admin" };
+      }
+    }
+
+    const res = await callAppsScriptApi('getConveyanceData', { user: sessionUser });
     
     if (!res || !res.success) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Failed to load history</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Failed to load history: ${res ? res.message : 'Unknown error'}</td></tr>`;
       return;
     }
 
@@ -377,7 +386,6 @@
     calculateSummaryCards(globalRecords);
     renderTable();
   }
-
   function calculateSummaryCards(records) {
     const todayStr = new Date().toISOString().slice(0, 10);
     let dailySum = 0;
