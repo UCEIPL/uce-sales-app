@@ -16,13 +16,14 @@
     loggedInUser = JSON.parse(localStorage.getItem('sales_portal_session'));
   } catch(e) { loggedInUser = null; }
 
+  // Agar session nahi hai ya salesPerson missing hai, toh login page par bhej do
   if (!loggedInUser || !loggedInUser.salesPerson) {
-    window.location.replace("index.html"); // Redirect to login/portal if not logged in
+    window.location.replace("index.html");
   }
 </script>
 
 <div class="container" style="max-width: 900px;">
-  <!-- HEADER: SHOWING ROLE INSTEAD OF STATIC TEXT -->
+  <!-- HEADER -->
   <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm mb-3">
     <div>
       <h5 class="fw-bold text-primary mb-0"><i class="fa fa-motorcycle me-2"></i>Field Visit & Conveyance</h5>
@@ -186,15 +187,14 @@
   let globalRecords = [];
 
   window.addEventListener('DOMContentLoaded', () => {
-    // Role restriction check for navigation back button
     const roleLower = String(loggedInUser.role || '').toLowerCase();
     const isRestrictedRole = roleLower.indexOf('engineer') > -1 || roleLower.indexOf('delivery') > -1 || roleLower.indexOf('employee') > -1;
+    
     if (isRestrictedRole) {
       document.getElementById('backToPortalBtn').style.display = 'none'; 
     }
 
     document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
-    // Displaying Role instead of hardcoded Sales Person
     document.getElementById('userRoleSubtitle').innerText = `${loggedInUser.salesPerson} (${loggedInUser.role || 'User'})`;
     
     captureGeoLocation();
@@ -323,6 +323,7 @@
     const tbody = document.getElementById('conveyanceTableBody');
     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-1"></i> Loading records...</td></tr>`;
 
+    // Passing exact loggedInUser object to backend for strict data isolation
     const res = await callAppsScriptApi('getConveyanceData', { user: loggedInUser });
     
     if (!res || !res.success) {
