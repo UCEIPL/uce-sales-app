@@ -182,11 +182,11 @@
   </div>
 </div>
 
-<!-- BOTTOM NAVIGATION BAR -->
+<!-- BOTTOM NAVIGATION BAR (ROLES RESTRICTED) -->
 <div class="app-bottom-nav" id="conveyanceBottomNav">
-  <a class="nav-btn" href="#" onclick="navigateToPortal('enquiry')"><i class="fa fa-list"></i>Leads</a>
-  <a class="nav-btn" href="#" onclick="navigateToPortal('todo')"><i class="fa fa-calendar-check"></i>To-Do</a>
-  <a class="nav-btn" href="#" onclick="navigateToPortal('enquiry')"><i class="fa fa-plus-circle"></i>Add Lead</a>
+  <a class="nav-btn" href="#" id="navBtnLeads" onclick="navigateToPortal('enquiry')"><i class="fa fa-list"></i>Leads</a>
+  <a class="nav-btn" href="#" id="navBtnTodo" onclick="navigateToPortal('todo')"><i class="fa fa-calendar-check"></i>To-Do</a>
+  <a class="nav-btn" href="#" id="navBtnAdd" onclick="navigateToPortal('enquiry')"><i class="fa fa-plus-circle"></i>Add Lead</a>
   <a class="nav-btn" href="#" id="navBtnAnalytics" onclick="navigateToPortal('analytics')"><i class="fa fa-chart-pie"></i>Analytics</a>
   <a class="nav-btn" href="#" id="navBtnCalls" onclick="navigateToPortal('activity')"><i class="fa fa-phone-alt"></i>Calls Log</a>
   <a class="nav-btn active" href="conveyance.html"><i class="fa fa-motorcycle"></i>Conveyance</a>
@@ -218,6 +218,10 @@
     
     if (isRestrictedRole) {
       document.getElementById('backToPortalBtn').style.display = 'none'; 
+      
+      // HIDE UNAUTHORIZED BOTTOM NAVIGATION BUTTONS FOR ENGINEER/DELIVERY
+      if(document.getElementById('navBtnLeads')) document.getElementById('navBtnLeads').style.display = 'none';
+      if(document.getElementById('navBtnAdd')) document.getElementById('navBtnAdd').style.display = 'none';
       if(document.getElementById('navBtnAnalytics')) document.getElementById('navBtnAnalytics').style.display = 'none';
       if(document.getElementById('navBtnCalls')) document.getElementById('navBtnCalls').style.display = 'none';
     }
@@ -361,6 +365,7 @@
     const tbody = document.getElementById('conveyanceTableBody');
     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-1"></i> Loading records...</td></tr>`;
 
+    // Passing exact loggedInUser object to backend for strict data isolation
     const res = await callAppsScriptApi('getConveyanceData', { user: loggedInUser });
     
     if (!res || !res.success) {
