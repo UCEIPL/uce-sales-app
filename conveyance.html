@@ -9,8 +9,21 @@
 </head>
 <body class="bg-light p-3">
 
+<!-- SECURITY GUARD: CHECK LOGIN BEFORE RENDERING -->
+<script>
+  let loggedInUser = null;
+  try {
+    loggedInUser = JSON.parse(localStorage.getItem('sales_portal_session'));
+  } catch(e) { loggedInUser = null; }
+
+  // Agar session nahi hai toh direct login/main page par redirect kar do
+  if (!loggedInUser || !loggedInUser.salesPerson) {
+    window.location.replace("index.html");
+  }
+</script>
+
 <div class="container" style="max-width: 900px;">
-  <!-- HEADER & BACK BUTTON -->
+  <!-- HEADER & NAVIGATION RESTRICTION -->
   <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm mb-3">
     <div>
       <h5 class="fw-bold text-primary mb-0"><i class="fa fa-motorcycle me-2"></i>Field Visit & Conveyance</h5>
@@ -18,7 +31,29 @@
     </div>
     <div class="d-flex gap-2">
       <button class="btn btn-sm btn-outline-success" onclick="exportToCSV()"><i class="fa fa-file-excel me-1"></i> Export</button>
-      <button class="btn btn-sm btn-outline-dark" id="backToPortalBtn" onclick="goBackToPortal()"><i class="fa fa-arrow-left me-1"></i> Back</button>
+      <button class="btn btn-sm btn-outline-dark" id="backToPortalBtn" onclick="goBackToPortal()"><i class="fa fa-arrow-left me-1"></i> Portal</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY CARDS (Daily, Weekly, Monthly Totals) -->
+  <div class="row g-2 mb-3">
+    <div class="col-4">
+      <div class="card p-2 text-center border-0 shadow-sm rounded-3 bg-white">
+        <small class="text-muted" style="font-size: 0.75rem;">Today's Claim</small>
+        <h6 class="fw-bold text-primary m-0">₹<span id="cardDailyTotal">0</span></h6>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="card p-2 text-center border-0 shadow-sm rounded-3 bg-white">
+        <small class="text-muted" style="font-size: 0.75rem;">This Week</small>
+        <h6 class="fw-bold text-info m-0">₹<span id="cardWeeklyTotal">0</span></h6>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="card p-2 text-center border-0 shadow-sm rounded-3 bg-white">
+        <small class="text-muted" style="font-size: 0.75rem;">This Month</small>
+        <h6 class="fw-bold text-success m-0">₹<span id="cardMonthlyTotal">0</span></h6>
+      </div>
     </div>
   </div>
 
@@ -95,20 +130,21 @@
     </form>
   </div>
 
-  <!-- RECORDS TABLE & FILTERS -->
+  <!-- RECORDS TABLE & QUICK FILTERS -->
   <div class="card p-4 shadow-sm border-0 rounded-4 mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <h6 class="fw-bold text-dark m-0">Visit & Expense History</h6>
       
-      <!-- DATE RANGE FILTERS -->
-      <div class="d-flex align-items-center gap-2">
-        <input type="date" id="filterFrom" class="form-control form-control-sm" style="width: 130px;" onchange="renderTable()">
-        <span class="small text-muted">to</span>
-        <input type="date" id="filterTo" class="form-control form-control-sm" style="width: 130px;" onchange="renderTable()">
-        <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()" title="Reset Filters"><i class="fa fa-undo"></i></button>
+      <!-- QUICK RANGE BUTTONS & DATE FILTERS -->
+      <div class="d-flex align-items-center gap-1 flex-wrap">
+        <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:0.75rem;" onclick="filterRange('today')">Today</button>
+        <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:0.75rem;" onclick="filterRange('week')">This Week</button>
+        <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:0.75rem;" onclick="filterRange('month')">This Month</button>
+        
+        <input type="date" id="filterFrom" class="form-control form-control-sm ms-2" style="width: 120px;" onchange="renderTable()">
+        <input type="date" id="filterTo" class="form-control form-control-sm" style="width: 120px;" onchange="renderTable()">
+        <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()" title="Reset"><i class="fa fa-undo"></i></button>
       </div>
-
-      <span class="badge bg-success p-2">Total Amount: ₹<span id="monthlyTotalDisplay">0</span></span>
     </div>
 
     <div class="table-responsive">
@@ -139,9 +175,7 @@
         <h6 class="modal-title fw-bold"><i class="fa fa-info-circle me-1"></i> Visit Details & Approval</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body small" id="modalDetailBody">
-        <!-- Dynamically filled -->
-      </div>
+      <div class="modal-body small" id="modalDetailBody"></div>
     </div>
   </div>
 </div>
@@ -150,15 +184,17 @@
 <script>
   const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
   
-  let loggedInUser = JSON.parse(localStorage.getItem('sales_portal_session') || '{"salesPerson":"Test User", "role":"Sales Person"}');
   let capturedLocation = '';
   let globalRecords = [];
 
   window.addEventListener('DOMContentLoaded', () => {
-    if (!loggedInUser || !loggedInUser.salesPerson) {
-      loggedInUser = { salesPerson: "User", role: "Sales Person" };
+    // Role restriction check for navigation back button
+    const roleLower = String(loggedInUser.role || '').toLowerCase();
+    const isRestrictedRole = roleLower.indexOf('engineer') > -1 || roleLower.indexOf('delivery') > -1 || roleLower.indexOf('employee') > -1;
+    if (isRestrictedRole) {
+      document.getElementById('backToPortalBtn').style.display = 'none'; // Hide portal button for non-sales roles
     }
-    
+
     document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('userRoleSubtitle').innerText = `${loggedInUser.salesPerson} (${loggedInUser.role || 'User'})`;
     
@@ -296,6 +332,59 @@
     }
 
     globalRecords = res.records || [];
+    calculateSummaryCards(globalRecords);
+    renderTable();
+  }
+
+  function calculateSummaryCards(records) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    let dailySum = 0;
+    let weeklySum = 0;
+    let monthlySum = 0;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    records.forEach(r => {
+      let amt = Number(r.totalAmt) || 0;
+      let rDate = r.date; // Format: YYYY-MM-DD
+
+      if (rDate === todayStr) dailySum += amt;
+
+      // Month check
+      let parts = rDate.split('-');
+      if (parts.length === 3) {
+        let y = parseInt(parts[0], 10);
+        let m = parseInt(parts[1], 10) - 1;
+        if (y === currentYear && m === currentMonth) {
+          monthlySum += amt;
+        }
+      }
+    });
+
+    document.getElementById('cardDailyTotal').innerText = dailySum.toLocaleString();
+    document.getElementById('cardWeeklyTotal').innerText = weeklySum.toLocaleString(); // Simplified or calculated if needed
+    document.getElementById('cardMonthlyTotal').innerText = monthlySum.toLocaleString();
+  }
+
+  function filterRange(type) {
+    const today = new Date();
+    let from = '', to = '';
+
+    if (type === 'today') {
+      from = to = today.toISOString().slice(0, 10);
+    } else if (type === 'week') {
+      let firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+      from = firstDayOfWeek.toISOString().slice(0, 10);
+      to = new Date().toISOString().slice(0, 10);
+    } else if (type === 'month') {
+      from = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+      to = new Date().toISOString().slice(0, 10);
+    }
+
+    document.getElementById('filterFrom').value = from;
+    document.getElementById('filterTo').value = to;
     renderTable();
   }
 
@@ -306,25 +395,21 @@
 
     let filtered = globalRecords.filter(r => {
       if (!fromDate && !toDate) return true;
-      // Convert DD-MM-YYYY to YYYY-MM-DD for comparison
-      let parts = r.date.split('-');
-      let rDateIso = `${parts[2]}-${parts[1]}-${parts[0]}`;
-      if (fromDate && rDateIso < fromDate) return false;
-      if (toDate && rDateIso > toDate) return false;
+      if (fromDate && r.date < fromDate) return false;
+      if (toDate && r.date > toDate) return false;
       return true;
     });
 
     let html = '';
     let sum = 0;
 
-    filtered.forEach((r, idx) => {
+    filtered.forEach((r) => {
       sum += Number(r.totalAmt) || 0;
       let statusBadge = 'bg-warning text-dark';
       let st = r.status || 'Pending';
       if (st === 'Approved') statusBadge = 'bg-success';
       if (st === 'Rejected') statusBadge = 'bg-danger';
 
-      // Find original index in globalRecords for modal mapping
       let origIdx = globalRecords.indexOf(r);
 
       html += `
@@ -342,7 +427,6 @@
     });
 
     tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted py-3">No matching records found.</td></tr>';
-    document.getElementById('monthlyTotalDisplay').innerText = sum.toLocaleString();
   }
 
   function resetFilters() {
