@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UCE Conveyance & Expenses</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light p-3">
+
+<div class="container" style="max-width: 750px;">
+  <!-- HEADER & BACK BUTTON -->
+  <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm mb-3">
+    <div>
+      <h5 class="fw-bold text-primary mb-0"><i class="fa fa-motorcycle me-2"></i>Field Visit & Conveyance</h5>
+      <small class="text-muted" id="userRoleSubtitle">Loading user...</small>
+    </div>
+    <!-- Vercel par main portal ka jo bhi URL ho, yahan daal sakte hain -->
+    <a href="index.html" class="btn btn-sm btn-outline-dark"><i class="fa fa-arrow-left me-1"></i> Back to Portal</a>
+  </div>
+
+  <!-- EXPENSE FORM -->
+  <div class="card p-4 shadow-sm mb-4 border-0 rounded-4">
+    <h6 class="fw-bold text-dark mb-3"><i class="fa fa-plus-circle me-1 text-primary"></i> Log New Visit & Expenses</h6>
+    <form id="conveyanceForm" onsubmit="submitConveyanceForm(event)">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <label class="form-label small fw-bold">Visit Date *</label>
+          <input type="date" id="cnvDate" class="form-control form-control-sm" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-bold">Client / Site Name *</label>
+          <input type="text" id="cnvClient" class="form-control form-control-sm" placeholder="Company / Site name" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-bold">Purpose of Visit *</label>
+          <input type="text" id="cnvPurpose" class="form-control form-control-sm" placeholder="Installation, Service, etc." required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label small fw-bold">Travel Mode *</label>
+          <select id="cnvType" class="form-select form-select-sm" onchange="toggleTravelModeFields()">
+            <option value="Bike">Bike (Auto KM @ ₹3.5/km)</option>
+            <option value="Cab">Cab / Taxi (Manual Fare)</option>
+            <option value="Public">Public Conveyance (Manual Fare)</option>
+          </select>
+        </div>
+
+        <!-- BIKE FIELDS -->
+        <div class="col-md-4 bike-field">
+          <label class="form-label small fw-bold">Start Meter Reading</label>
+          <input type="number" id="cnvStartMeter" class="form-control form-control-sm" placeholder="e.g. 12450" oninput="calculateBikeExpense()">
+        </div>
+        <div class="col-md-4 bike-field">
+          <label class="form-label small fw-bold">End Meter Reading</label>
+          <input type="number" id="cnvEndMeter" class="form-control form-control-sm" placeholder="e.g. 12510" oninput="calculateBikeExpense()">
+        </div>
+
+        <!-- MANUAL AMOUNT FIELD -->
+        <div class="col-md-4 manual-field d-none">
+          <label class="form-label small fw-bold">Travel Fare Amount (₹) *</label>
+          <input type="number" id="cnvTravelAmt" class="form-control form-control-sm" placeholder="0.00" value="0" oninput="calculateTotalAmount()">
+        </div>
+
+        <!-- OPTIONAL METER IMAGE -->
+        <div class="col-md-4">
+          <label class="form-label small fw-bold">Meter / Bill Photo (Optional)</label>
+          <input type="file" id="cnvImageFile" class="form-control form-control-sm" accept="image/*">
+        </div>
+
+        <!-- OTHER EXPENSES -->
+        <div class="col-md-4">
+          <label class="form-label small fw-bold">Other Expenses (Food/Stay) (₹)</label>
+          <input type="number" id="cnvOtherAmt" class="form-control form-control-sm" placeholder="0.00" value="0" oninput="calculateTotalAmount()">
+        </div>
+
+        <!-- SUMMARY DISPLAY -->
+        <div class="col-12 bg-light p-2 rounded border mt-2 d-flex justify-content-between align-items-center">
+          <div>
+            <span class="small text-muted">Total KM: <b id="lblTotalKm">0</b> KM</span> | 
+            <span class="small text-muted">Travel Cost: ₹<b id="lblTravelCost">0</b></span>
+          </div>
+          <div>
+            <h6 class="fw-bold text-success m-0">Total Claim: ₹<span id="lblTotalClaim">0</span></h6>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label small fw-bold">Remarks / Notes</label>
+          <input type="text" id="cnvRemarks" class="form-control form-control-sm" placeholder="Any extra details...">
+        </div>
+
+        <div class="col-12 text-end mt-3">
+          <button type="submit" id="cnvSubmitBtn" class="btn btn-primary btn-sm fw-bold px-4">Submit Expense Claim</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- RECORDS TABLE & MONTHLY TOTAL -->
+  <div class="card p-4 shadow-sm border-0 rounded-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="fw-bold text-dark m-0">My Visit & Expense History</h6>
+      <span class="badge bg-success p-2">Monthly Total: ₹<span id="monthlyTotalDisplay">0</span></span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle small">
+        <thead class="table-dark">
+          <tr>
+            <th>Date</th>
+            <th>Client / Purpose</th>
+            <th>Mode</th>
+            <th>KM / Fare</th>
+            <th>Other</th>
+            <th>Total (₹)</th>
+            <th>Location / Photo</th>
+          </tr>
+        </thead>
+        <tbody id="conveyanceTableBody">
+          <tr><td colspan="7" class="text-center text-muted py-3">Loading records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Aapka Apps Script Executable URL
+  const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
+  
+  // LocalStorage se logged-in user uthayega (jo main portal save karta hai)
+  let loggedInUser = JSON.parse(localStorage.getItem('sales_portal_session') || '{"salesPerson":"Test Engineer"}');
+  let capturedLocation = '';
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!loggedInUser.salesPerson) {
+      loggedInUser = { salesPerson: "Engineer" };
+    }
+    document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('userRoleSubtitle').innerText = `${loggedInUser.salesPerson} (${loggedInUser.role || 'Field User'})`;
+    
+    captureGeoLocation();
+    loadConveyanceHistory();
+  });
+
+  function captureGeoLocation() {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        capturedLocation = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+      }, err => { capturedLocation = 'Location Denied'; }, { timeout: 10000 });
+    }
+  }
+
+  function toggleTravelModeFields() {
+    const type = document.getElementById('cnvType').value;
+    const bikeFields = document.querySelectorAll('.bike-field');
+    const manualField = document.querySelector('.manual-field');
+
+    if (type === 'Bike') {
+      bikeFields.forEach(el => el.classList.remove('d-none'));
+      manualField.classList.add('d-none');
+    } else {
+      bikeFields.forEach(el => el.classList.add('d-none'));
+      manualField.classList.remove('d-none');
+    }
+    calculateTotalAmount();
+  }
+
+  function calculateBikeExpense() {
+    const start = parseFloat(document.getElementById('cnvStartMeter').value) || 0;
+    const end = parseFloat(document.getElementById('cnvEndMeter').value) || 0;
+    let km = 0;
+    if (end > start) km = end - start;
+
+    document.getElementById('lblTotalKm').innerText = km;
+    const bikeCost = km * 3.5;
+    document.getElementById('lblTravelCost').innerText = bikeCost.toFixed(2);
+    calculateTotalAmount();
+  }
+
+  function calculateTotalAmount() {
+    const type = document.getElementById('cnvType').value;
+    let travelAmt = 0;
+
+    if (type === 'Bike') {
+      travelAmt = parseFloat(document.getElementById('lblTravelCost').innerText) || 0;
+    } else {
+      travelAmt = parseFloat(document.getElementById('cnvTravelAmt').value) || 0;
+    }
+
+    const otherAmt = parseFloat(document.getElementById('cnvOtherAmt').value) || 0;
+    const total = travelAmt + otherAmt;
+    document.getElementById('lblTotalClaim').innerText = total.toFixed(2);
+  }
+
+  async function callAppsScriptApi(action, data = {}) {
+    try {
+      const response = await fetch(APPS_SCRIPT_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: action, data: data })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error("API Error:", error);
+      return { success: false, message: error.toString() };
+    }
+  }
+
+  async function submitConveyanceForm(e) {
+    e.preventDefault();
+    const btn = document.getElementById('cnvSubmitBtn');
+    btn.disabled = true; btn.innerText = 'Submitting...';
+
+    const type = document.getElementById('cnvType').value;
+    const startMeter = parseFloat(document.getElementById('cnvStartMeter').value) || 0;
+    const endMeter = parseFloat(document.getElementById('cnvEndMeter').value) || 0;
+    const totalKm = type === 'Bike' ? (endMeter > startMeter ? endMeter - startMeter : 0) : 0;
+    const bikeAmt = type === 'Bike' ? totalKm * 3.5 : 0;
+    const otherAmt = parseFloat(document.getElementById('cnvOtherAmt').value) || 0;
+    const travelAmt = type === 'Bike' ? bikeAmt : (parseFloat(document.getElementById('cnvTravelAmt').value) || 0);
+    const totalAmt = travelAmt + otherAmt;
+
+    let imageUrl = '';
+    const fileInput = document.getElementById('cnvImageFile');
+    if (fileInput.files && fileInput.files[0]) {
+      imageUrl = await convertFileToBase64(fileInput.files[0]);
+    }
+
+    const payload = {
+      date: document.getElementById('cnvDate').value,
+      salesPerson: loggedInUser.salesPerson,
+      client: document.getElementById('cnvClient').value,
+      purpose: document.getElementById('cnvPurpose').value,
+      type: type,
+      startMeter: startMeter,
+      endMeter: endMeter,
+      totalKm: totalKm,
+      bikeAmt: bikeAmt,
+      otherAmt: otherAmt,
+      totalAmt: totalAmt,
+      location: capturedLocation,
+      imageUrl: imageUrl,
+      remarks: document.getElementById('cnvRemarks').value
+    };
+
+    const res = await callAppsScriptApi('saveConveyanceExpense', payload);
+    btn.disabled = false; btn.innerText = 'Submit Expense Claim';
+
+    if (res && res.success) {
+      alert(res.message);
+      document.getElementById('conveyanceForm').reset();
+      document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
+      toggleTravelModeFields();
+      loadConveyanceHistory();
+    } else {
+      alert("Error: " + (res ? res.message : 'Failed'));
+    }
+  }
+
+  function convertFileToBase64(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function loadConveyanceHistory() {
+    const res = await callAppsScriptApi('getConveyanceData', { user: loggedInUser });
+    if (!res || !res.success) return;
+
+    const records = res.records || [];
+    let tbody = '';
+    let monthlySum = 0;
+
+    records.forEach(r => {
+      monthlySum += Number(r.totalAmt) || 0;
+      let photoLink = r.imageUrl ? `<a href="${r.imageUrl}" target="_blank" class="btn btn-xxs btn-outline-primary py-0">View Photo</a>` : 'No Photo';
+      let locText = r.location ? `<br><small class="text-muted"><i class="fa fa-map-marker-alt text-danger"></i> ${r.location}</small>` : '';
+
+      tbody += `
+        <tr>
+          <td>${r.date}</td>
+          <td><b>${r.client}</b><br><small class="text-muted">${r.purpose}</small>${locText}</td>
+          <td><span class="badge bg-secondary">${r.type}</span></td>
+          <td>${r.type === 'Bike' ? r.totalKm + ' KM' : 'Manual'}</td>
+          <td>₹${r.otherAmt}</td>
+          <td class="fw-bold text-success">₹${r.totalAmt}</td>
+          <td>${photoLink}</td>
+        </tr>
+      `;
+    });
+
+    document.getElementById('conveyanceTableBody').innerHTML = tbody || '<tr><td colspan="7" class="text-center text-muted">No records found.</td></tr>';
+    document.getElementById('monthlyTotalDisplay').innerText = monthlySum.toLocaleString();
+  }
+</script>
+
+</body>
+</html>
