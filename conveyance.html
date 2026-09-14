@@ -9,21 +9,20 @@
 </head>
 <body class="bg-light p-3">
 
-<!-- SECURITY GUARD: CHECK LOGIN BEFORE RENDERING -->
+<!-- SECURITY GUARD: BLOCK DIRECT URL BYPASS -->
 <script>
   let loggedInUser = null;
   try {
     loggedInUser = JSON.parse(localStorage.getItem('sales_portal_session'));
   } catch(e) { loggedInUser = null; }
 
-  // Agar session nahi hai toh direct login/main page par redirect kar do
   if (!loggedInUser || !loggedInUser.salesPerson) {
-    window.location.replace("index.html");
+    window.location.replace("index.html"); // Redirect to login/portal if not logged in
   }
 </script>
 
 <div class="container" style="max-width: 900px;">
-  <!-- HEADER & NAVIGATION RESTRICTION -->
+  <!-- HEADER: SHOWING ROLE INSTEAD OF STATIC TEXT -->
   <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm mb-3">
     <div>
       <h5 class="fw-bold text-primary mb-0"><i class="fa fa-motorcycle me-2"></i>Field Visit & Conveyance</h5>
@@ -35,7 +34,7 @@
     </div>
   </div>
 
-  <!-- SUMMARY CARDS (Daily, Weekly, Monthly Totals) -->
+  <!-- SUMMARY CARDS -->
   <div class="row g-2 mb-3">
     <div class="col-4">
       <div class="card p-2 text-center border-0 shadow-sm rounded-3 bg-white">
@@ -130,12 +129,11 @@
     </form>
   </div>
 
-  <!-- RECORDS TABLE & QUICK FILTERS -->
+  <!-- RECORDS TABLE & FILTERS -->
   <div class="card p-4 shadow-sm border-0 rounded-4 mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <h6 class="fw-bold text-dark m-0">Visit & Expense History</h6>
       
-      <!-- QUICK RANGE BUTTONS & DATE FILTERS -->
       <div class="d-flex align-items-center gap-1 flex-wrap">
         <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:0.75rem;" onclick="filterRange('today')">Today</button>
         <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:0.75rem;" onclick="filterRange('week')">This Week</button>
@@ -192,10 +190,11 @@
     const roleLower = String(loggedInUser.role || '').toLowerCase();
     const isRestrictedRole = roleLower.indexOf('engineer') > -1 || roleLower.indexOf('delivery') > -1 || roleLower.indexOf('employee') > -1;
     if (isRestrictedRole) {
-      document.getElementById('backToPortalBtn').style.display = 'none'; // Hide portal button for non-sales roles
+      document.getElementById('backToPortalBtn').style.display = 'none'; 
     }
 
     document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
+    // Displaying Role instead of hardcoded Sales Person
     document.getElementById('userRoleSubtitle').innerText = `${loggedInUser.salesPerson} (${loggedInUser.role || 'User'})`;
     
     captureGeoLocation();
@@ -348,11 +347,10 @@
 
     records.forEach(r => {
       let amt = Number(r.totalAmt) || 0;
-      let rDate = r.date; // Format: YYYY-MM-DD
+      let rDate = r.date; 
 
       if (rDate === todayStr) dailySum += amt;
 
-      // Month check
       let parts = rDate.split('-');
       if (parts.length === 3) {
         let y = parseInt(parts[0], 10);
@@ -364,7 +362,7 @@
     });
 
     document.getElementById('cardDailyTotal').innerText = dailySum.toLocaleString();
-    document.getElementById('cardWeeklyTotal').innerText = weeklySum.toLocaleString(); // Simplified or calculated if needed
+    document.getElementById('cardWeeklyTotal').innerText = weeklySum.toLocaleString();
     document.getElementById('cardMonthlyTotal').innerText = monthlySum.toLocaleString();
   }
 
