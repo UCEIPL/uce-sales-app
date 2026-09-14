@@ -9,7 +9,7 @@
 </head>
 <body class="bg-light p-3">
 
-<div class="container" style="max-width: 800px;">
+<div class="container" style="max-width: 900px;">
   <!-- HEADER & BACK BUTTON -->
   <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm mb-3">
     <div>
@@ -17,7 +17,7 @@
       <small class="text-muted" id="userRoleSubtitle">Loading user...</small>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn btn-sm btn-outline-success" onclick="exportToCSV()"><i class="fa fa-file-excel me-1"></i> Export Excel</button>
+      <button class="btn btn-sm btn-outline-success" onclick="exportToCSV()"><i class="fa fa-file-excel me-1"></i> Export</button>
       <button class="btn btn-sm btn-outline-dark" id="backToPortalBtn" onclick="goBackToPortal()"><i class="fa fa-arrow-left me-1"></i> Back</button>
     </div>
   </div>
@@ -95,12 +95,22 @@
     </form>
   </div>
 
-  <!-- RECORDS TABLE & HISTORY -->
+  <!-- RECORDS TABLE & FILTERS -->
   <div class="card p-4 shadow-sm border-0 rounded-4 mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <h6 class="fw-bold text-dark m-0">Visit & Expense History</h6>
-      <span class="badge bg-success p-2">Monthly Total: ₹<span id="monthlyTotalDisplay">0</span></span>
+      
+      <!-- DATE RANGE FILTERS -->
+      <div class="d-flex align-items-center gap-2">
+        <input type="date" id="filterFrom" class="form-control form-control-sm" style="width: 130px;" onchange="renderTable()">
+        <span class="small text-muted">to</span>
+        <input type="date" id="filterTo" class="form-control form-control-sm" style="width: 130px;" onchange="renderTable()">
+        <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()" title="Reset Filters"><i class="fa fa-undo"></i></button>
+      </div>
+
+      <span class="badge bg-success p-2">Total Amount: ₹<span id="monthlyTotalDisplay">0</span></span>
     </div>
+
     <div class="table-responsive">
       <table class="table table-sm table-hover align-middle small">
         <thead class="table-dark">
@@ -109,11 +119,12 @@
             <th>User / Client</th>
             <th>Mode</th>
             <th>Total (₹)</th>
+            <th>Status</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody id="conveyanceTableBody">
-          <tr><td colspan="5" class="text-center text-muted py-3">Loading records...</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-3">Loading records...</td></tr>
         </tbody>
       </table>
     </div>
@@ -125,7 +136,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow rounded-4">
       <div class="modal-header bg-primary text-white">
-        <h6 class="modal-title fw-bold"><i class="fa fa-info-circle me-1"></i> Visit Details</h6>
+        <h6 class="modal-title fw-bold"><i class="fa fa-info-circle me-1"></i> Visit Details & Approval</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body small" id="modalDetailBody">
@@ -148,13 +159,6 @@
       loggedInUser = { salesPerson: "User", role: "Sales Person" };
     }
     
-    // Restriction logic: If user is Engineer/Employee/Delivery (Not Admin/Manager/Sales), hide back to portal if needed or adjust back button
-    const roleLower = String(loggedInUser.role || '').toLowerCase();
-    const isRestrictedRole = roleLower.indexOf('engineer') > -1 || roleLower.indexOf('delivery') > -1 || roleLower.indexOf('employee') > -1;
-    if (isRestrictedRole) {
-      document.getElementById('backToPortalBtn').style.display = 'none'; // Only conveyance access
-    }
-
     document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('userRoleSubtitle').innerText = `${loggedInUser.salesPerson} (${loggedInUser.role || 'User'})`;
     
@@ -163,7 +167,7 @@
   });
 
   function goBackToPortal() {
-    window.location.href = "index.html"; // Adjust to your main portal page if different
+    window.location.href = "index.html";
   }
 
   function captureGeoLocation() {
@@ -282,21 +286,46 @@
 
   async function loadConveyanceHistory() {
     const tbody = document.getElementById('conveyanceTableBody');
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-1"></i> Loading records...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-1"></i> Loading records...</td></tr>`;
 
     const res = await callAppsScriptApi('getConveyanceData', { user: loggedInUser });
     
     if (!res || !res.success) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-3">Failed to load history</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Failed to load history</td></tr>`;
       return;
     }
 
     globalRecords = res.records || [];
-    let html = '';
-    let monthlySum = 0;
+    renderTable();
+  }
 
-    globalRecords.forEach((r, idx) => {
-      monthlySum += Number(r.totalAmt) || 0;
+  function renderTable() {
+    const tbody = document.getElementById('conveyanceTableBody');
+    const fromDate = document.getElementById('filterFrom').value;
+    const toDate = document.getElementById('filterTo').value;
+
+    let filtered = globalRecords.filter(r => {
+      if (!fromDate && !toDate) return true;
+      // Convert DD-MM-YYYY to YYYY-MM-DD for comparison
+      let parts = r.date.split('-');
+      let rDateIso = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      if (fromDate && rDateIso < fromDate) return false;
+      if (toDate && rDateIso > toDate) return false;
+      return true;
+    });
+
+    let html = '';
+    let sum = 0;
+
+    filtered.forEach((r, idx) => {
+      sum += Number(r.totalAmt) || 0;
+      let statusBadge = 'bg-warning text-dark';
+      let st = r.status || 'Pending';
+      if (st === 'Approved') statusBadge = 'bg-success';
+      if (st === 'Rejected') statusBadge = 'bg-danger';
+
+      // Find original index in globalRecords for modal mapping
+      let origIdx = globalRecords.indexOf(r);
 
       html += `
         <tr>
@@ -304,23 +333,47 @@
           <td><b>${r.salesPerson}</b><br><small class="text-muted">${r.client}</small></td>
           <td><span class="badge bg-secondary">${r.type}</span></td>
           <td class="fw-bold text-success">₹${r.totalAmt}</td>
+          <td><span class="badge ${statusBadge}">${st}</span></td>
           <td>
-            <button class="btn btn-xs btn-outline-primary py-0 px-2" onclick="openDetailModal(${idx})" style="font-size: 0.75rem;"><i class="fa fa-eye"></i> View</button>
+            <button class="btn btn-xs btn-outline-primary py-0 px-2" onclick="openDetailModal(${origIdx})" style="font-size: 0.75rem;"><i class="fa fa-eye"></i> View</button>
           </td>
         </tr>
       `;
     });
 
-    tbody.innerHTML = html || '<tr><td colspan="5" class="text-center text-muted py-3">No records found.</td></tr>';
-    document.getElementById('monthlyTotalDisplay').innerText = monthlySum.toLocaleString();
+    tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted py-3">No matching records found.</td></tr>';
+    document.getElementById('monthlyTotalDisplay').innerText = sum.toLocaleString();
+  }
+
+  function resetFilters() {
+    document.getElementById('filterFrom').value = '';
+    document.getElementById('filterTo').value = '';
+    renderTable();
   }
 
   function openDetailModal(idx) {
     const r = globalRecords[idx];
     if (!r) return;
 
+    let roleLower = String(loggedInUser.role || '').toLowerCase();
+    let isMgmt = roleLower.indexOf('admin') > -1 || roleLower.indexOf('manager') > -1;
+
     let photoBlock = r.imageUrl ? `<a href="${r.imageUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-1"><i class="fa fa-image me-1"></i> View Attached Bill/Photo</a>` : '<span class="text-muted">No Photo Attached</span>';
     let locBlock = r.location ? `<a href="https://maps.google.com/?q=${r.location}" target="_blank" class="text-decoration-none text-danger"><i class="fa fa-map-marker-alt me-1"></i> ${r.location}</a>` : 'Not Captured';
+
+    let approvalActionBlock = '';
+    if (isMgmt) {
+      approvalActionBlock = `
+        <hr>
+        <div class="d-flex justify-content-between align-items-center">
+          <b>Update Status:</b>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-success px-3" onclick="updateStatus('${r.id}', 'Approved')"><i class="fa fa-check me-1"></i> Approve</button>
+            <button class="btn btn-sm btn-danger px-3" onclick="updateStatus('${r.id}', 'Rejected')"><i class="fa fa-times me-1"></i> Reject</button>
+          </div>
+        </div>
+      `;
+    }
 
     let content = `
       <div class="mb-2"><b>Submitted By:</b> ${r.salesPerson}</div>
@@ -331,13 +384,27 @@
       ${r.type === 'Bike' ? `<div class="mb-2"><b>Meter Reading:</b> Start: ${r.startMeter} | End: ${r.endMeter} | Total KM: <b>${r.totalKm} KM</b></div>` : ''}
       <div class="mb-2"><b>Other Expenses:</b> ₹${r.otherAmt}</div>
       <div class="mb-2 text-success fw-bold">Total Claim Amount: ₹${r.totalAmt}</div>
+      <div class="mb-2"><b>Current Status:</b> <span class="badge bg-secondary">${r.status || 'Pending'}</span></div>
       <div class="mb-2"><b>Remarks:</b> ${r.remarks || 'None'}</div>
       <div class="mb-2"><b>Location:</b> ${locBlock}</div>
       <div class="mt-3">${photoBlock}</div>
+      ${approvalActionBlock}
     `;
 
     document.getElementById('modalDetailBody').innerHTML = content;
-    new bootstrap.Modal(document.getElementById('detailModal')).show();
+    window.activeModalInstance = new bootstrap.Modal(document.getElementById('detailModal'));
+    window.activeModalInstance.show();
+  }
+
+  async function updateStatus(id, newStatus) {
+    const res = await callAppsScriptApi('updateConveyanceStatus', { id: id, status: newStatus });
+    if (res && res.success) {
+      showCreativeToast("Updated", res.message, "success");
+      if (window.activeModalInstance) window.activeModalInstance.hide();
+      loadConveyanceHistory();
+    } else {
+      showCreativeToast("Error", res ? res.message : "Failed to update status", "danger");
+    }
   }
 
   function exportToCSV() {
@@ -347,10 +414,10 @@
     }
 
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "ID,Date,SalesPerson,Client,Purpose,Type,StartMeter,EndMeter,TotalKM,BikeAmt,OtherAmt,TotalAmt,Remarks,Location\r\n";
+    csvContent += "ID,Date,SalesPerson,Client,Purpose,Type,StartMeter,EndMeter,TotalKM,BikeAmt,OtherAmt,TotalAmt,Status,Remarks,Location\r\n";
 
     globalRecords.forEach(r => {
-      let row = [r.id, r.date, `"${r.salesPerson}"`, `"${r.client}"`, `"${r.purpose}"`, r.type, r.startMeter, r.endMeter, r.totalKm, r.bikeAmt, r.otherAmt, r.totalAmt, `"${r.remarks || ''}"`, `"${r.location || ''}"`];
+      let row = [r.id, r.date, `"${r.salesPerson}"`, `"${r.client}"`, `"${r.purpose}"`, r.type, r.startMeter, r.endMeter, r.totalKm, r.bikeAmt, r.otherAmt, r.totalAmt, r.status || 'Pending', `"${r.remarks || ''}"`, `"${r.location || ''}"`];
       csvContent += row.join(",") + "\r\n";
     });
 
