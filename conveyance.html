@@ -2,21 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>UCE Conveyance Portal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8fafc; font-family: sans-serif; padding-bottom: 70px; }
+    .app-bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 60px; background: #ffffff;
+      border-top: 1px solid #cbd5e1;
+      display: flex; justify-content: space-around; align-items: center;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+      z-index: 1000;
+    }
+    .nav-btn {
+      text-align: center; color: #64748b; font-size: 0.72rem; font-weight: 600;
+      text-decoration: none; flex: 1; padding: 6px 0; cursor: pointer;
+    }
+    .nav-btn i { font-size: 1.2rem; display: block; margin-bottom: 2px; }
+    .nav-btn.active { color: #2563eb; }
+  </style>
 </head>
-<body class="bg-light p-3">
+<body class="p-3">
 
-<!-- SECURITY GUARD: BLOCK DIRECT URL BYPASS -->
+<!-- SECURITY GUARD -->
 <script>
   let loggedInUser = null;
   try {
     loggedInUser = JSON.parse(localStorage.getItem('sales_portal_session'));
   } catch(e) { loggedInUser = null; }
 
-  // Agar session nahi hai ya salesPerson missing hai, toh login page par bhej do
   if (!loggedInUser || !loggedInUser.salesPerson) {
     window.location.replace("index.html");
   }
@@ -166,6 +182,16 @@
   </div>
 </div>
 
+<!-- BOTTOM NAVIGATION BAR FOR CONVEYANCE PAGE -->
+<div class="app-bottom-nav" id="conveyanceBottomNav">
+  <a class="nav-btn" href="mobile.html" id="navBtnLeads"><i class="fa fa-list"></i>Leads</a>
+  <a class="nav-btn" href="mobile.html" id="navBtnTodo"><i class="fa fa-calendar-check"></i>To-Do</a>
+  <a class="nav-btn" href="mobile.html" id="navBtnAdd"><i class="fa fa-plus-circle"></i>Add Lead</a>
+  <a class="nav-btn" href="mobile.html" id="navBtnAnalytics"><i class="fa fa-chart-pie"></i>Analytics</a>
+  <a class="nav-btn" href="mobile.html" id="navBtnCalls"><i class="fa fa-phone-alt"></i>Calls Log</a>
+  <a class="nav-btn active" href="conveyance.html"><i class="fa fa-motorcycle"></i>Conveyance</a>
+</div>
+
 <!-- DETAIL VIEW MODAL -->
 <div class="modal fade" id="detailModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -187,11 +213,14 @@
   let globalRecords = [];
 
   window.addEventListener('DOMContentLoaded', () => {
-    const roleLower = String(loggedInUser.role || '').toLowerCase();
-    const isRestrictedRole = roleLower.indexOf('engineer') > -1 || roleLower.indexOf('delivery') > -1 || roleLower.indexOf('employee') > -1;
+    const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
+    const isRestrictedRole = role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1;
     
     if (isRestrictedRole) {
       document.getElementById('backToPortalBtn').style.display = 'none'; 
+      // Hide unauthorized navigation items on conveyance page for restricted roles
+      if(document.getElementById('navBtnAnalytics')) document.getElementById('navBtnAnalytics').style.display = 'none';
+      if(document.getElementById('navBtnCalls')) document.getElementById('navBtnCalls').style.display = 'none';
     }
 
     document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
@@ -202,7 +231,7 @@
   });
 
   function goBackToPortal() {
-    window.location.href = "index.html";
+    window.location.href = "mobile.html";
   }
 
   function captureGeoLocation() {
@@ -323,7 +352,6 @@
     const tbody = document.getElementById('conveyanceTableBody');
     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-1"></i> Loading records...</td></tr>`;
 
-    // Passing exact loggedInUser object to backend for strict data isolation
     const res = await callAppsScriptApi('getConveyanceData', { user: loggedInUser });
     
     if (!res || !res.success) {
@@ -440,12 +468,14 @@
 
     let roleLower = String(loggedInUser.role || '').toLowerCase();
     let isMgmt = roleLower.indexOf('admin') > -1 || roleLower.indexOf('manager') > -1;
+    let currentStatus = String(r.status || 'Pending').trim();
 
     let photoBlock = r.imageUrl ? `<a href="${r.imageUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-1"><i class="fa fa-image me-1"></i> View Attached Bill/Photo</a>` : '<span class="text-muted">No Photo Attached</span>';
     let locBlock = r.location ? `<a href="https://maps.google.com/?q=${r.location}" target="_blank" class="text-decoration-none text-danger"><i class="fa fa-map-marker-alt me-1"></i> ${r.location}</a>` : 'Not Captured';
 
     let approvalActionBlock = '';
-    if (isMgmt) {
+    // Agar user Admin/Manager hai AUR status abhi tak Pending hai, tabhi Approve/Reject buttons dikhenge
+    if (isMgmt && currentStatus === 'Pending') {
       approvalActionBlock = `
         <hr>
         <div class="d-flex justify-content-between align-items-center">
@@ -454,6 +484,13 @@
             <button class="btn btn-sm btn-success px-3" onclick="updateStatus('${r.id}', 'Approved')"><i class="fa fa-check me-1"></i> Approve</button>
             <button class="btn btn-sm btn-danger px-3" onclick="updateStatus('${r.id}', 'Rejected')"><i class="fa fa-times me-1"></i> Reject</button>
           </div>
+        </div>
+      `;
+    } else if (isMgmt && currentStatus !== 'Pending') {
+      approvalActionBlock = `
+        <hr>
+        <div class="text-center text-muted small fst-italic">
+          <i class="fa fa-lock me-1"></i> This claim has already been marked as <b>${currentStatus}</b> and is now locked.
         </div>
       `;
     }
@@ -467,7 +504,7 @@
       ${r.type === 'Bike' ? `<div class="mb-2"><b>Meter Reading:</b> Start: ${r.startMeter} | End: ${r.endMeter} | Total KM: <b>${r.totalKm} KM</b></div>` : ''}
       <div class="mb-2"><b>Other Expenses:</b> ₹${r.otherAmt}</div>
       <div class="mb-2 text-success fw-bold">Total Claim Amount: ₹${r.totalAmt}</div>
-      <div class="mb-2"><b>Current Status:</b> <span class="badge bg-secondary">${r.status || 'Pending'}</span></div>
+      <div class="mb-2"><b>Current Status:</b> <span class="badge bg-secondary">${currentStatus}</span></div>
       <div class="mb-2"><b>Remarks:</b> ${r.remarks || 'None'}</div>
       <div class="mb-2"><b>Location:</b> ${locBlock}</div>
       <div class="mt-3">${photoBlock}</div>
