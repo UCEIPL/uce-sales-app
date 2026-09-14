@@ -109,18 +109,18 @@
 <div class="container-fluid p-0">
   <div class="row g-0">
     <!-- Sidebar -->
-    <div class="col-md-3 col-lg-2 sidebar p-3 d-flex flex-column">
+    <div class="col-md-3 col-lg-2 sidebar p-3 d-flex flex-column" id="sidebarContainer">
       <h4 class="text-white mb-4 ps-2 fw-bold fs-5">
         <img src="https://unitedcontrolengg.com/wp-content/uploads/2025/06/United-Logo.png" alt="Logo" style="height: 35px; width: auto; margin-right: 8px; vertical-align: middle;">
         <span style="vertical-align: middle;">UCEIPL SALES</span>
       </h4>
-      <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item"><a class="nav-link active" id="tab-enquiry-btn" onclick="showTab('enquiry')">📋 Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" id="tab-todo-btn" onclick="showTab('todo')">✅ To-Do List</a></li>
-        <li class="nav-item"><a class="nav-link" id="tab-analytics-btn" onclick="showTab('analytics')">📊 Visual Analytics</a></li>
-        <li class="nav-item"><a class="nav-link" id="tab-lost-btn" onclick="showTab('lost')">❌ Lost Enquiries</a></li>
-        <li class="nav-item"><a class="nav-link" id="tab-activity-btn" onclick="showTab('activity')">📞 Calls & Visits</a></li>
-        <li class="nav-item"><a class="nav-link" href="conveyance.html">🏍️ Conveyance</a></li>
+      <ul class="nav nav-pills flex-column mb-auto" id="sidebarNavList">
+        <li class="nav-item" id="navItemDashboard"><a class="nav-link active" id="tab-enquiry-btn" onclick="showTab('enquiry')">📋 Dashboard</a></li>
+        <li class="nav-item" id="navItemTodo"><a class="nav-link" id="tab-todo-btn" onclick="showTab('todo')">✅ To-Do List</a></li>
+        <li class="nav-item" id="navItemAnalytics"><a class="nav-link" id="tab-analytics-btn" onclick="showTab('analytics')">📊 Visual Analytics</a></li>
+        <li class="nav-item" id="navItemLost"><a class="nav-link" id="tab-lost-btn" onclick="showTab('lost')">❌ Lost Enquiries</a></li>
+        <li class="nav-item" id="navItemActivity"><a class="nav-link" id="tab-activity-btn" onclick="showTab('activity')">📞 Calls & Visits</a></li>
+        <li class="nav-item" id="navItemConveyance"><a class="nav-link" href="conveyance.html">🏍️ Conveyance</a></li>
       </ul>
 
       <!-- SIDEBAR TARGET WIDGET -->
@@ -240,7 +240,7 @@
         </div>
 
         <!-- CREATE ENQUIRY FORM -->
-        <div class="card p-4 mb-4">
+        <div class="card p-4 mb-4" id="createEnquiryCardWrapper">
           <div class="d-flex justify-content-between align-items-center">
             <h5 class="mb-0 text-primary fw-bold"><i class="fa fa-plus-circle me-1"></i> Create New Enquiry</h5>
             <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="toggleEnquiryFormBtn" onclick="toggleEnquiryForm()">
@@ -684,7 +684,6 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-3">
-        <!-- Add New Task Form -->
         <div class="p-3 mb-3 bg-light rounded-3 border">
           <h6 class="fw-bold text-primary mb-2 small"><i class="fa fa-plus-circle me-1"></i> Add Task for this Date</h6>
           <div class="row g-2">
@@ -712,7 +711,6 @@
           </div>
         </div>
 
-        <!-- Task List for this Date -->
         <h6 class="fw-bold small text-muted mb-2"><i class="fa fa-list me-1"></i> Scheduled Tasks for this Day</h6>
         <div class="table-responsive" style="max-height: 220px;">
           <table class="table table-sm table-hover align-middle mb-0">
@@ -998,7 +996,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // VERCEL API BRIDGE (Ensures smooth connection with Apps Script backend)
   const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
 
   async function callAppsScriptApi(action, data = {}) {
@@ -1123,6 +1120,25 @@
         err => {},
         { timeout: 8000, enableHighAccuracy: false }
       );
+    }
+  }
+
+  // --- ROLE-BASED SIDEBAR & TAB RESTRICTION FOR ENGINEER / DELIVERY ---
+  function applyRoleSidebarRestrictions() {
+    if (!loggedInUser || !loggedInUser.role) return;
+    const role = String(loggedInUser.role).toLowerCase();
+
+    if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
+      // Hide unauthorized sidebar items
+      const navAnalytics = document.getElementById('navItemAnalytics');
+      const navLost = document.getElementById('navItemLost');
+      const navActivity = document.getElementById('navItemActivity');
+      const navDashboard = document.getElementById('navItemDashboard');
+
+      if (navAnalytics) navAnalytics.style.display = 'none';
+      if (navLost) navLost.style.display = 'none';
+      if (navActivity) navActivity.style.display = 'none';
+      if (navDashboard) navDashboard.style.display = 'none'; // Dashboard hide ho jayega, sirf To-Do aur Conveyance bachega
     }
   }
 
@@ -1258,6 +1274,17 @@
         loggedInUser = JSON.parse(savedUserSession);
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('loggedUser').innerText = loggedInUser.salesPerson + " (" + loggedInUser.role + ")";
+        applyRoleSidebarRestrictions();
+        
+        // Agar user engineer/delivery hai toh default tab To-Do ya Conveyance set kar do agar wo dashboard par hai
+        const role = String(loggedInUser.role).toLowerCase();
+        if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
+          const currentTab = localStorage.getItem('active_portal_tab');
+          if (currentTab === 'enquiry' || !currentTab) {
+            showTab('todo', false);
+          }
+        }
+
         fetchMasterData();
         checkNotificationSupport();
       } catch (err) {
@@ -1421,6 +1448,7 @@
       localStorage.setItem('sales_portal_session', JSON.stringify(loggedInUser));
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('loggedUser').innerText = loggedInUser.salesPerson + " (" + loggedInUser.role + ")";
+      applyRoleSidebarRestrictions();
       fetchMasterData();
       checkNotificationSupport();
       showFloatingNotification("Welcome", `Logged in as ${loggedInUser.salesPerson}`);
@@ -1468,7 +1496,6 @@
       longitude: userGeoCoords ? userGeoCoords.longitude : ''
     };
 
-    // --- INSTANT OPTIMISTIC UI UPDATE (Bina wait kiye screen par show karega) ---
     const tempId = 'UCE-TEMP-' + Math.floor(Math.random() * 1000);
     const optimisticItem = {
       id: tempId,
@@ -1484,19 +1511,17 @@
     };
     
     globalEnquiries.unshift(optimisticItem);
-    applyDashboardFilters(); // UI instantly update ho jayegi
+    applyDashboardFilters();
     resetEnquiryForm();
     saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
-    // --------------------------------------------------------------------------
 
-    // Background server call
     const res = await callAppsScriptApi("saveEnquiry", formData);
     if (res && res.success) {
       showFloatingNotification("Success", res.message);
-      loadDashboardData(); // Real server data se sync kar lega
+      loadDashboardData();
     } else {
       showAlert('Error: ' + (res ? res.message : 'Failed'), 'danger');
-      loadDashboardData(); // Error hone par revert kar dega
+      loadDashboardData();
     }
   }
 
@@ -1860,7 +1885,7 @@
     }
   }
 
- async function saveFullLeadDetailsUpdate() {
+  async function saveFullLeadDetailsUpdate() {
     const stVal = document.getElementById('editStatus').value;
     const lostReasonVal = document.getElementById('editLostReason').value;
 
@@ -1904,6 +1929,7 @@
       showAlert("Failed: " + (res ? res.message : 'Error'), "danger");
     }
   }
+
   function changeCalendarMonth(step) {
     calCurrentDate.setMonth(calCurrentDate.getMonth() + step);
     renderActivityCalendarAndMatrix();
@@ -2187,6 +2213,14 @@
   }
 
   function showTab(tabName, saveState = true) {
+    const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
+    const isRestricted = role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1;
+
+    if (isRestricted && tabName !== 'todo') {
+      showFloatingNotification("Access Denied", "This section is restricted for your role.");
+      return;
+    }
+
     ['enquiry', 'todo', 'analytics', 'lost', 'activity'].forEach(t => {
       const mod = document.getElementById(t + 'Module');
       const btn = document.getElementById('tab-' + t + '-btn');
