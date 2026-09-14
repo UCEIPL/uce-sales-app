@@ -182,13 +182,13 @@
   </div>
 </div>
 
-<!-- BOTTOM NAVIGATION BAR FOR CONVEYANCE PAGE -->
+<!-- BOTTOM NAVIGATION BAR -->
 <div class="app-bottom-nav" id="conveyanceBottomNav">
-  <a class="nav-btn" href="mobile.html" id="navBtnLeads"><i class="fa fa-list"></i>Leads</a>
-  <a class="nav-btn" href="mobile.html" id="navBtnTodo"><i class="fa fa-calendar-check"></i>To-Do</a>
-  <a class="nav-btn" href="mobile.html" id="navBtnAdd"><i class="fa fa-plus-circle"></i>Add Lead</a>
-  <a class="nav-btn" href="mobile.html" id="navBtnAnalytics"><i class="fa fa-chart-pie"></i>Analytics</a>
-  <a class="nav-btn" href="mobile.html" id="navBtnCalls"><i class="fa fa-phone-alt"></i>Calls Log</a>
+  <a class="nav-btn" href="#" onclick="navigateToPortal('enquiry')"><i class="fa fa-list"></i>Leads</a>
+  <a class="nav-btn" href="#" onclick="navigateToPortal('todo')"><i class="fa fa-calendar-check"></i>To-Do</a>
+  <a class="nav-btn" href="#" onclick="navigateToPortal('enquiry')"><i class="fa fa-plus-circle"></i>Add Lead</a>
+  <a class="nav-btn" href="#" id="navBtnAnalytics" onclick="navigateToPortal('analytics')"><i class="fa fa-chart-pie"></i>Analytics</a>
+  <a class="nav-btn" href="#" id="navBtnCalls" onclick="navigateToPortal('activity')"><i class="fa fa-phone-alt"></i>Calls Log</a>
   <a class="nav-btn active" href="conveyance.html"><i class="fa fa-motorcycle"></i>Conveyance</a>
 </div>
 
@@ -218,7 +218,6 @@
     
     if (isRestrictedRole) {
       document.getElementById('backToPortalBtn').style.display = 'none'; 
-      // Hide unauthorized navigation items on conveyance page for restricted roles
       if(document.getElementById('navBtnAnalytics')) document.getElementById('navBtnAnalytics').style.display = 'none';
       if(document.getElementById('navBtnCalls')) document.getElementById('navBtnCalls').style.display = 'none';
     }
@@ -230,8 +229,18 @@
     loadConveyanceHistory();
   });
 
+  function getPortalPage() {
+    const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return isMobile ? 'mobile.html' : 'web.html';
+  }
+
+  function navigateToPortal(tabName) {
+    localStorage.setItem('active_portal_tab', tabName);
+    window.location.href = getPortalPage();
+  }
+
   function goBackToPortal() {
-    window.location.href = "mobile.html";
+    window.location.href = getPortalPage();
   }
 
   function captureGeoLocation() {
@@ -474,7 +483,6 @@
     let locBlock = r.location ? `<a href="https://maps.google.com/?q=${r.location}" target="_blank" class="text-decoration-none text-danger"><i class="fa fa-map-marker-alt me-1"></i> ${r.location}</a>` : 'Not Captured';
 
     let approvalActionBlock = '';
-    // Agar user Admin/Manager hai AUR status abhi tak Pending hai, tabhi Approve/Reject buttons dikhenge
     if (isMgmt && currentStatus === 'Pending') {
       approvalActionBlock = `
         <hr>
