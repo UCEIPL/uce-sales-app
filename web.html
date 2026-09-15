@@ -1152,6 +1152,7 @@
     showTab(savedTab, false);
     checkSession();
     initGeolocation();
+    
   });
 
   function toggleEnquiryForm() {
@@ -1275,15 +1276,15 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('loggedUser').innerText = loggedInUser.salesPerson + " (" + loggedInUser.role + ")";
         applyRoleSidebarRestrictions();
-        
-        // Agar user engineer/delivery hai toh default tab To-Do ya Conveyance set kar do agar wo dashboard par hai
-        const role = String(loggedInUser.role).toLowerCase();
+
+        // --- YAHAN LAGANA HAI YE CHECK ---
+        const role = String(loggedInUser.role || '').toLowerCase();
         if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
-          const currentTab = localStorage.getItem('active_portal_tab');
-          if (currentTab === 'enquiry' || !currentTab) {
-            showTab('todo', false);
-          }
+          // Restricted role hai toh seedha conveyance page par redirect kar do
+          window.location.replace("conveyance.html");
+          return;
         }
+        // ---------------------------------
 
         fetchMasterData();
         checkNotificationSupport();
@@ -1294,7 +1295,6 @@
       document.getElementById('loginScreen').style.display = 'flex';
     }
   }
-
   async function fetchMasterData() {
     const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
     if (data) onMasterDataLoaded(data);
