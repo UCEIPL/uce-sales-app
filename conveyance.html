@@ -6,6 +6,9 @@
   <title>UCE Conveyance Portal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- jsPDF for PDF Report Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <style>
     body { background-color: #f8fafc; font-family: sans-serif; padding-bottom: 70px; }
     .app-bottom-nav {
@@ -46,7 +49,15 @@
       <small class="text-muted" id="userRoleSubtitle">Loading user...</small>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn btn-sm btn-outline-success" onclick="exportToCSV()"><i class="fa fa-file-excel me-1"></i> Export</button>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-success dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
+          <i class="fa fa-download me-1"></i> Export Report
+        </button>
+        <ul class="dropdown-menu shadow border-0">
+          <li><a class="dropdown-item small fw-bold" href="#" onclick="exportToCSV()"><i class="fa fa-file-excel text-success me-2"></i> Export Excel (CSV)</a></li>
+          <li><a class="dropdown-item small fw-bold" href="#" onclick="exportToPDF()"><i class="fa fa-file-pdf text-danger me-2"></i> Export PDF Report</a></li>
+        </ul>
+      </div>
       <button class="btn btn-sm btn-outline-dark" id="backToPortalBtn" onclick="goBackToPortal()"><i class="fa fa-arrow-left me-1"></i> Portal</button>
     </div>
   </div>
@@ -151,12 +162,19 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <h6 class="fw-bold text-dark m-0">Visit & Expense History</h6>
       
-      <div class="d-flex align-items-center gap-1 flex-wrap">
+      <!-- MEMBER FILTER FOR ADMIN/MANAGER -->
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div id="adminMemberFilterWrapper" class="d-none">
+          <select id="filterMemberSelect" class="form-select form-select-sm fw-bold border-primary" onchange="renderTable()">
+            <option value="ALL">All Team Members</option>
+          </select>
+        </div>
+
         <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:0.75rem;" onclick="filterRange('today')">Today</button>
         <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:0.75rem;" onclick="filterRange('week')">This Week</button>
         <button class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size:0.75rem;" onclick="filterRange('month')">This Month</button>
         
-        <input type="date" id="filterFrom" class="form-control form-control-sm ms-2" style="width: 120px;" onchange="renderTable()">
+        <input type="date" id="filterFrom" class="form-control form-control-sm" style="width: 120px;" onchange="renderTable()">
         <input type="date" id="filterTo" class="form-control form-control-sm" style="width: 120px;" onchange="renderTable()">
         <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()" title="Reset"><i class="fa fa-undo"></i></button>
       </div>
@@ -182,7 +200,7 @@
   </div>
 </div>
 
-<!-- BOTTOM NAVIGATION BAR (ROLES RESTRICTED) -->
+<!-- BOTTOM NAVIGATION BAR -->
 <div class="app-bottom-nav" id="conveyanceBottomNav">
   <a class="nav-btn" href="#" id="navBtnLeads" onclick="navigateToPortal('enquiry')"><i class="fa fa-list"></i>Leads</a>
   <a class="nav-btn" href="#" id="navBtnTodo" onclick="navigateToPortal('todo')"><i class="fa fa-calendar-check"></i>To-Do</a>
@@ -218,12 +236,13 @@
     
     if (isRestrictedRole) {
       document.getElementById('backToPortalBtn').style.display = 'none'; 
-      
-      // HIDE UNAUTHORIZED BOTTOM NAVIGATION BUTTONS FOR ENGINEER/DELIVERY
       if(document.getElementById('navBtnLeads')) document.getElementById('navBtnLeads').style.display = 'none';
       if(document.getElementById('navBtnAdd')) document.getElementById('navBtnAdd').style.display = 'none';
       if(document.getElementById('navBtnAnalytics')) document.getElementById('navBtnAnalytics').style.display = 'none';
       if(document.getElementById('navBtnCalls')) document.getElementById('navBtnCalls').style.display = 'none';
+    } else {
+      // Show Member Filter for Admin / Manager
+      document.getElementById('adminMemberFilterWrapper').classList.remove('d-none');
     }
 
     document.getElementById('cnvDate').value = new Date().toISOString().split('T')[0];
@@ -365,29 +384,39 @@
     const tbody = document.getElementById('conveyanceTableBody');
     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-1"></i> Loading records...</td></tr>`;
 
-    // Ensure session object is safe and valid before sending to backend
     let sessionUser = loggedInUser;
-    if (!sessionUser || typeof sessionUser !== 'object') {
-      try {
-        sessionUser = JSON.parse(localStorage.getItem('sales_portal_session')) || { salesPerson: "Admin", role: "Admin" };
-      } catch(e) {
-        sessionUser = { salesPerson: "Admin", role: "Admin" };
-      }
-    }
-
     const res = await callAppsScriptApi('getConveyanceData', { user: sessionUser });
     
     if (!res || !res.success) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Failed to load history: ${res ? res.message : 'Unknown error'}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Failed to load history</td></tr>`;
       return;
     }
 
     globalRecords = res.records || [];
+    
+    // Populate member dropdown for Admin/Manager
+    populateMemberFilterDropdown(globalRecords);
+
     calculateSummaryCards(globalRecords);
     renderTable();
   }
+
+  function populateMemberFilterDropdown(records) {
+    const select = document.getElementById('filterMemberSelect');
+    if (!select) return;
+    
+    let membersSet = new Set();
+    records.forEach(r => { if (r.salesPerson) membersSet.add(r.salesPerson); });
+
+    let opts = '<option value="ALL">All Team Members</option>';
+    membersSet.forEach(m => {
+      opts += `<option value="${m}">${m}</option>`;
+    });
+    select.innerHTML = opts;
+  }
+
   function calculateSummaryCards(records) {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = new Date().toISOString().split('T')[0];
     let dailySum = 0;
     let weeklySum = 0;
     let monthlySum = 0;
@@ -396,7 +425,15 @@
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
+    // If admin/manager has selected a specific member from dropdown, calculate for that member only
+    const memberSelect = document.getElementById('filterMemberSelect');
+    const selectedMember = memberSelect ? memberSelect.value : 'ALL';
+
     records.forEach(r => {
+      if (selectedMember !== 'ALL' && String(r.salesPerson).toLowerCase() !== String(selectedMember).toLowerCase()) {
+        return;
+      }
+
       let amt = Number(r.totalAmt) || 0;
       let rDate = r.date; 
 
@@ -441,19 +478,23 @@
     const tbody = document.getElementById('conveyanceTableBody');
     const fromDate = document.getElementById('filterFrom').value;
     const toDate = document.getElementById('filterTo').value;
+    const memberSelect = document.getElementById('filterMemberSelect');
+    const selectedMember = memberSelect ? memberSelect.value : 'ALL';
 
     let filtered = globalRecords.filter(r => {
+      if (selectedMember !== 'ALL' && String(r.salesPerson).toLowerCase() !== String(selectedMember).toLowerCase()) {
+        return false;
+      }
       if (!fromDate && !toDate) return true;
       if (fromDate && r.date < fromDate) return false;
       if (toDate && r.date > toDate) return false;
       return true;
     });
 
-    let html = '';
-    let sum = 0;
+    calculateSummaryCards(filtered);
 
+    let html = '';
     filtered.forEach((r) => {
-      sum += Number(r.totalAmt) || 0;
       let statusBadge = 'bg-warning text-dark';
       let st = r.status || 'Pending';
       if (st === 'Approved') statusBadge = 'bg-success';
@@ -481,6 +522,7 @@
   function resetFilters() {
     document.getElementById('filterFrom').value = '';
     document.getElementById('filterTo').value = '';
+    if(document.getElementById('filterMemberSelect')) document.getElementById('filterMemberSelect').value = 'ALL';
     renderTable();
   }
 
@@ -569,6 +611,48 @@
     document.body.appendChild(link);
     link.click();
     document.removeEventListener("click", link);
+  }
+
+  function exportToPDF() {
+    if (!globalRecords || globalRecords.length === 0) {
+      showCreativeToast("Notice", "No records available to export.", "danger");
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("UCEIPL - Conveyance & Expense Report", 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()} | User: ${loggedInUser.salesPerson}`, 14, 26);
+
+    let tableData = [];
+    let totalSum = 0;
+
+    globalRecords.forEach(r => {
+      totalSum += Number(r.totalAmt) || 0;
+      tableData.push([r.date, r.salesPerson, r.client, r.type, `₹${r.totalAmt}`, r.status || 'Pending']);
+    });
+
+    doc.autoTable({
+      startY: 34,
+      head: [['Date', 'Salesperson', 'Client', 'Mode', 'Total (₹)', 'Status']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [15, 23, 42] }
+    });
+
+    let finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Total Claim Amount: ₹${totalSum.toLocaleString()}`, 14, finalY);
+
+    doc.save(`Conveyance_Report_${new Date().toISOString().slice(0,10)}.pdf`);
+    showCreativeToast("Success", "PDF report downloaded successfully!", "success");
   }
 
   function showCreativeToast(title, message, type = 'success') {
