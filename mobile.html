@@ -1005,6 +1005,15 @@
       try {
         loggedInUser = JSON.parse(session);
         if (loggedInUser && loggedInUser.salesPerson) {
+          
+          // --- YAHAN LAGANA HAI MOBILE WALI FILE MEIN ---
+          const role = String(loggedInUser.role || '').toLowerCase();
+          if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
+            window.location.replace("conveyance.html");
+            return;
+          }
+          // ----------------------------------------------
+
           document.getElementById('loginScreen').style.display = 'none';
           document.getElementById('loggedUserMobile').innerText = loggedInUser.salesPerson;
           applyRoleNavigationRestrictions();
