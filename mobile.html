@@ -837,16 +837,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // APPS SCRIPT API ENDPOINT
   const APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxeS23zbPNegYQjszbE5-Iqcw4ySVUy8Yddi6HE3RcFInfYUvSJtMpeR1XdNbM_Lne8/exec";
 
   async function callAppsScriptApi(action, data = {}) {
     try {
       const response = await fetch(APPS_SCRIPT_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: action, data: data })
       });
       return await response.json();
@@ -856,7 +853,6 @@
     }
   }
 
-  // FLOATING IN-APP POPUP ENGINE
   let bannerTimer = null;
   function showFloatingNotification(title, message) {
     playNotificationChime();
@@ -868,11 +864,8 @@
       titleEl.innerText = title;
       msgEl.innerText = message;
       banner.classList.add('show');
-
       if (bannerTimer) clearTimeout(bannerTimer);
-      bannerTimer = setTimeout(() => {
-        banner.classList.remove('show');
-      }, 5000);
+      bannerTimer = setTimeout(() => { banner.classList.remove('show'); }, 5000);
     }
   }
 
@@ -885,39 +878,18 @@
   function checkNotificationSupport() {
     if ('Notification' in window) {
       const btn = document.getElementById('notifEnableBtn');
-      if (Notification.permission === 'default' && btn) {
-        btn.classList.remove('d-none');
-      } else if (btn) {
-        btn.classList.add('d-none');
-      }
+      if (Notification.permission === 'default' && btn) btn.classList.remove('d-none');
+      else if (btn) btn.classList.add('d-none');
     }
   }
 
   async function requestNotificationPermission() {
-    if (!('Notification' in window)) {
-      showFloatingNotification("Notice", "This device does not support native notification API.");
-      return;
-    }
+    if (!('Notification' in window)) return;
     const permission = await Notification.requestPermission();
-    const btn = document.getElementById('notifEnableBtn');
     if (permission === 'granted') {
+      const btn = document.getElementById('notifEnableBtn');
       if (btn) btn.classList.add('d-none');
-      showFloatingNotification("Enabled", "Push notifications are now active on your device!");
-      sendLocalPushNotification("UCE Sales Portal", "Notifications configured successfully!");
-    } else {
-      showAlert("Notification permission was denied.", "warning");
-    }
-  }
-
-  function sendLocalPushNotification(title, message) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(title, {
-          body: message,
-          icon: "https://unitedcontrolengg.com/wp-content/uploads/2025/06/United-Logo.png",
-          badge: "https://unitedcontrolengg.com/wp-content/uploads/2025/06/United-Logo.png"
-        });
-      } catch (e) {}
+      showFloatingNotification("Enabled", "Push notifications are now active!");
     }
   }
 
@@ -925,14 +897,10 @@
   let globalEnquiries = [], globalActivities = [], filteredList = [];
   let loggedInUser = null, currentPage = 1, pageSize = 15;
   let powerBiMobileChartInstance = null;
-  let currentLeadPhone = '';
-  let currentLeadBrand = '';
-  let mobCalDate = new Date();
-  let selectedMobDateStr = '';
-  let userGeoCoords = null;
-  let globalTasks = [];
-  let mobTodoCalDate = new Date();
-  let selectedMobTodoDateStr = '';
+  let currentLeadPhone = '', currentLeadBrand = '';
+  let mobCalDate = new Date(), selectedMobDateStr = '';
+  let userGeoCoords = null, globalTasks = [];
+  let mobTodoCalDate = new Date(), selectedMobTodoDateStr = '';
   let currentMobTaskFilter = 'ALL';
 
   function playNotificationChime() {
@@ -979,16 +947,20 @@
     if (!loggedInUser || !loggedInUser.role) return;
     const role = String(loggedInUser.role).toLowerCase();
     
-    // Display Role instead of static text in top bar if needed
     const userBadge = document.getElementById('loggedUserMobile');
     if (userBadge) {
       userBadge.innerText = `${loggedInUser.salesPerson} (${loggedInUser.role})`;
     }
 
-    if (role.includes('engineer') || role.includes('delivery') || role.includes('employee')) {
-      // Hide unauthorized bottom navigation buttons (Analytics, Calls)
+    if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
+      // Hide unauthorized bottom navigation buttons for Engineer/Delivery
+      const leadsBtn = document.getElementById('nb-leads');
+      const addBtn = document.getElementById('nb-add');
       const analyticsBtn = document.getElementById('nb-analytics');
       const callsBtn = document.getElementById('nb-calls');
+
+      if (leadsBtn) leadsBtn.style.display = 'none';
+      if (addBtn) addBtn.style.display = 'none';
       if (analyticsBtn) analyticsBtn.style.display = 'none';
       if (callsBtn) callsBtn.style.display = 'none';
     }
@@ -1005,18 +977,19 @@
       try {
         loggedInUser = JSON.parse(session);
         if (loggedInUser && loggedInUser.salesPerson) {
-          
-          // --- YAHAN LAGANA HAI MOBILE WALI FILE MEIN ---
-          const role = String(loggedInUser.role || '').toLowerCase();
-          if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
-            window.location.replace("conveyance.html");
-            return;
-          }
-          // ----------------------------------------------
-
           document.getElementById('loginScreen').style.display = 'none';
           document.getElementById('loggedUserMobile').innerText = loggedInUser.salesPerson;
           applyRoleNavigationRestrictions();
+
+          const role = String(loggedInUser.role || '').toLowerCase();
+          const isRestrictedRole = role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1;
+
+          let savedTab = localStorage.getItem('active_portal_tab') || 'leads';
+          if (isRestrictedRole && (savedTab === 'leads' || savedTab === 'add')) {
+            savedTab = 'todo';
+          }
+
+          switchTab(savedTab);
           fetchMasterData();
           checkNotificationSupport();
         } else {
@@ -1139,9 +1112,9 @@
 
   function switchTab(tab) {
     const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
-    const isRestricted = role.includes('engineer') || role.includes('delivery') || role.includes('employee');
+    const isRestricted = role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1;
 
-    if (isRestricted && (tab === 'analytics' || tab === 'calls')) {
+    if (isRestricted && (tab === 'leads' || tab === 'add' || tab === 'analytics' || tab === 'calls')) {
       showFloatingNotification("Access Denied", "This section is restricted for your role.");
       return;
     }
@@ -1163,11 +1136,12 @@
     if (tab === 'analytics') renderMobilePowerBiDashboard();
     if (tab === 'calls') renderMobileCalendarAndSummary();
     if (tab === 'todo') renderMobileTodoCalendarAndSummary();
+    localStorage.setItem('active_portal_tab', tab);
   }
 
   async function fetchMasterData() {
     const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
-    if (!data) return;
+    if (!data || !data.success) return;
 
     rawCustomers = data.customers || [];
     masterSalesPersons = data.salesPersons || [];
@@ -1275,7 +1249,7 @@
 
   async function loadDashboard() {
     const data = await callAppsScriptApi("getDashboardData", { user: loggedInUser });
-    if (!data) return;
+    if (!data || !data.success) return;
 
     globalEnquiries = data.enquiries || [];
     globalActivities = data.activities || [];
@@ -1318,8 +1292,6 @@
         textElem.innerHTML = `You have <b>${todayLeadCount} Lead Follow-up(s)</b>, <b>${todayPayCount} Payment Follow-up(s)</b>, and <b>${todayTaskCount} Task(s)</b> scheduled for today (${todayStr}).`;
         banner.classList.remove('d-none');
       }
-      showFloatingNotification("Today's Reminders Alert", `📅 ${todayLeadCount} Leads, ${todayPayCount} Payments & ${todayTaskCount} Tasks scheduled today!`);
-      sendLocalPushNotification("UCE Alert", `You have ${todayLeadCount} leads, ${todayPayCount} payments, and ${todayTaskCount} tasks today.`);
     } else {
       if (banner) banner.classList.add('d-none');
     }
@@ -1781,7 +1753,8 @@
       paymentFollowup: document.getElementById('editPaymentFollowup').value,
       dispatch: document.getElementById('editDispatch').value,
       lostReason: lostReasonVal,
-      remark: document.getElementById('editRemark').value
+      remark: document.getElementById('editRemark').value,
+      user: loggedInUser
     };
 
     const res = await callAppsScriptApi("updateEnquiryFull", payload);
@@ -1976,6 +1949,13 @@
     if (res && res.success) {
       loggedInUser = res.user;
       localStorage.setItem('sales_portal_session', JSON.stringify(loggedInUser));
+      
+      const role = String(loggedInUser.role || '').toLowerCase();
+      if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
+        window.location.replace("conveyance.html");
+        return;
+      }
+
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('loggedUserMobile').innerText = loggedInUser.salesPerson;
       applyRoleNavigationRestrictions();
@@ -2121,7 +2101,7 @@
   }
 
   function logout() {
-    localStorage.removeItem('sales_portal_session');
+    localStorage.clear();
     location.reload();
   }
 
