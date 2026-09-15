@@ -59,6 +59,7 @@
         </ul>
       </div>
       <button class="btn btn-sm btn-outline-dark" id="backToPortalBtn" onclick="goBackToPortal()"><i class="fa fa-arrow-left me-1"></i> Portal</button>
+      <button class="btn btn-sm btn-outline-danger" onclick="logoutSession()"><i class="fa fa-power-off"></i></button>
     </div>
   </div>
 
@@ -266,6 +267,11 @@
     window.location.href = getPortalPage();
   }
 
+  function logoutSession() {
+    localStorage.clear();
+    window.location.href = "index.html";
+  }
+
   function captureGeoLocation() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(pos => {
@@ -384,8 +390,7 @@
     const tbody = document.getElementById('conveyanceTableBody');
     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin me-1"></i> Loading records...</td></tr>`;
 
-    let sessionUser = loggedInUser;
-    const res = await callAppsScriptApi('getConveyanceData', { user: sessionUser });
+    const res = await callAppsScriptApi('getConveyanceData', { user: loggedInUser });
     
     if (!res || !res.success) {
       tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">Failed to load history</td></tr>`;
@@ -393,10 +398,7 @@
     }
 
     globalRecords = res.records || [];
-    
-    // Populate member dropdown for Admin/Manager
     populateMemberFilterDropdown(globalRecords);
-
     calculateSummaryCards(globalRecords);
     renderTable();
   }
@@ -425,12 +427,11 @@
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // If admin/manager has selected a specific member from dropdown, calculate for that member only
     const memberSelect = document.getElementById('filterMemberSelect');
     const selectedMember = memberSelect ? memberSelect.value : 'ALL';
 
     records.forEach(r => {
-      if (selectedMember !== 'ALL' && String(r.salesPerson).toLowerCase() !== String(selectedMember).toLowerCase()) {
+      if (selectedMember !== 'ALL' && String(r.salesPerson).toLowerCase().trim() !== String(selectedMember).toLowerCase().trim()) {
         return;
       }
 
@@ -482,7 +483,7 @@
     const selectedMember = memberSelect ? memberSelect.value : 'ALL';
 
     let filtered = globalRecords.filter(r => {
-      if (selectedMember !== 'ALL' && String(r.salesPerson).toLowerCase() !== String(selectedMember).toLowerCase()) {
+      if (selectedMember !== 'ALL' && String(r.salesPerson).toLowerCase().trim() !== String(selectedMember).toLowerCase().trim()) {
         return false;
       }
       if (!fromDate && !toDate) return true;
@@ -651,7 +652,7 @@
     doc.setTextColor(15, 23, 42);
     doc.text(`Total Claim Amount: ₹${totalSum.toLocaleString()}`, 14, finalY);
 
-    doc.save(`Conveyance_Report_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(`Conveyance_Report_${new Date().toISOString().slice(0,10)}.csv` .replace('.csv', '.pdf'));
     showCreativeToast("Success", "PDF report downloaded successfully!", "success");
   }
 
