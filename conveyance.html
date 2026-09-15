@@ -242,7 +242,6 @@
       if(document.getElementById('navBtnAnalytics')) document.getElementById('navBtnAnalytics').style.display = 'none';
       if(document.getElementById('navBtnCalls')) document.getElementById('navBtnCalls').style.display = 'none';
     } else {
-      // Show Member Filter for Admin / Manager
       document.getElementById('adminMemberFilterWrapper').classList.remove('d-none');
     }
 
@@ -259,6 +258,14 @@
   }
 
   function navigateToPortal(tabName) {
+    const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
+    const isRestrictedRole = role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1;
+    
+    if (isRestrictedRole && tabName !== 'todo') {
+      alert("Access Denied: You only have access to To-Do and Conveyance.");
+      return;
+    }
+
     localStorage.setItem('active_portal_tab', tabName);
     window.location.href = getPortalPage();
   }
@@ -581,7 +588,7 @@
   }
 
   async function updateStatus(id, newStatus) {
-    const res = await callAppsScriptApi('updateConveyanceStatus', { id: id, status: newStatus });
+    const res = await callAppsScriptApi('updateConveyanceStatus', { id: id, status: newStatus, user: loggedInUser });
     if (res && res.success) {
       showCreativeToast("Updated", res.message, "success");
       if (window.activeModalInstance) window.activeModalInstance.hide();
@@ -652,7 +659,7 @@
     doc.setTextColor(15, 23, 42);
     doc.text(`Total Claim Amount: ₹${totalSum.toLocaleString()}`, 14, finalY);
 
-    doc.save(`Conveyance_Report_${new Date().toISOString().slice(0,10)}.csv` .replace('.csv', '.pdf'));
+    doc.save(`Conveyance_Report_${new Date().toISOString().slice(0,10)}.pdf`);
     showCreativeToast("Success", "PDF report downloaded successfully!", "success");
   }
 
