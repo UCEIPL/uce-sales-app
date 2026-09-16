@@ -420,7 +420,15 @@
             <h6 class="fw-bold text-dark mb-0 fs-6"><i class="fa fa-list me-1"></i> Recent Enquiries Dashboard</h6>
             <button class="btn btn-sm btn-success fw-bold" onclick="openMemberExportModal()"><i class="fa fa-file-excel me-1"></i> Download Member Report</button>
           </div>
-
+        <!-- Quick Filter Pills for Web Portal -->
+            <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+              <span class="small fw-bold text-muted"><i class="fa fa-filter me-1"></i> Quick Filter:</span>
+              <button class="btn btn-sm btn-primary active filter-pill-btn" onclick="filterByPill('ALL', this)">All</button>
+              <button class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Hot lead', this)">🔥 Hot Leads</button>
+              <button class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Quoted', this)">📋 Quoted</button>
+              <button class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Won', this)">🏆 Won</button>
+              <button class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Pending', this)">⏳ Pending Payments</button>
+            </div>
           <div class="mb-3 p-2 bg-light rounded border">
             <div class="row g-2">
               <div class="col-md-3">
