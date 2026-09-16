@@ -39,7 +39,7 @@
     .cal-day:hover .add-hint-icon { color: #2563eb; }
     
 /* Advanced Micro-Interactions & Skeleton Loaders */
-    @shimmerLoading {
+    @keyframes shimmerLoading {
       0% { background-position: -200px 0; }
       100% { background-position: calc(200px + 100%) 0; }
     }
@@ -67,83 +67,50 @@
     }
     .brand-item-hover:hover { background-color: #f1f5f9; }
 
-    /* FLOATING IN-APP NOTIFICATION BANNER */
-    #floatingNotificationBanner {
-      position: fixed;
-      top: -120px;
-      right: 20px;
-      z-index: 10000;
-      background: #0f172a;
-      color: #ffffff;
-      border-radius: 14px;
-      padding: 12px 18px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.15);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 300px;
-      max-width: 420px;
-      transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      cursor: pointer;
-    }
-    #floatingNotificationBanner.show { top: 20px; }
     /* TOAST NOTIFICATION STACK CONTAINER */
-#toastNotificationContainer {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 320px;
-  width: 100%;
-  pointer-events: none;
-}
+    #toastNotificationContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 320px;
+      width: 100%;
+      pointer-events: none;
+    }
 
-.custom-toast {
-  background: #ffffff;
-  color: #333333;
-  padding: 12px 16px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-left: 5px solid #0d6efd;
-  font-size: 0.85rem;
-  pointer-events: auto;
-  opacity: 0;
-  transform: translateY(-20px);
-  transition: all 0.3s ease-in-out;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-}
+    .custom-toast {
+      background: #ffffff;
+      color: #333333;
+      padding: 12px 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border-left: 5px solid #0d6efd;
+      font-size: 0.85rem;
+      pointer-events: auto;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.3s ease-in-out;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
 
-.custom-toast.show {
-  opacity: 1;
-  transform: translateY(0);
-}
+    .custom-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
 
-.custom-toast.success { border-left-color: #198754; }
-.custom-toast.danger { border-left-color: #dc3545; }
-.custom-toast.warning { border-left-color: #ffc107; }
+    .custom-toast.success { border-left-color: #198754; }
+    .custom-toast.danger { border-left-color: #dc3545; }
+    .custom-toast.warning { border-left-color: #ffc107; }
   </style>
 </head>
 <body>
 <!-- TOAST CONTAINER -->
 <div id="toastNotificationContainer"></div>
-  
-<!-- FLOATING NOTIFICATION POPUP -->
-<div id="floatingNotificationBanner" onclick="dismissFloatingBanner()">
-  <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; min-width: 36px;">
-    <i class="fa fa-bell"></i>
-  </div>
-  <div class="flex-grow-1 text-truncate">
-    <div class="fw-bold extra-small text-warning" id="floatBannerTitle">Notification</div>
-    <div class="small text-white text-truncate" id="floatBannerMsg">Message</div>
-  </div>
-  <button type="button" class="btn-close btn-close-white extra-small" onclick="event.stopPropagation(); dismissFloatingBanner();"></button>
-</div>
 
 <!-- LOGIN OVERLAY -->
 <div id="loginScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 15px;">
@@ -237,6 +204,25 @@
     <!-- Main Content -->
     <div class="col-md-9 col-lg-10 p-4">
       
+      <!-- TOP-RIGHT NOTIFICATION BELL ICON & DROPDOWN -->
+      <div class="d-flex justify-content-end mb-3">
+        <div class="dropdown position-relative">
+          <button class="btn btn-outline-secondary btn-sm rounded-circle position-relative bg-white" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 38px; height: 38px;" title="Notification History">
+            <i class="fa fa-bell text-secondary"></i>
+            <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.6rem;">0</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2 rounded-4" style="width: 320px; max-height: 380px; overflow-y: auto;">
+            <li class="d-flex justify-content-between align-items-center px-2 pb-2 border-bottom">
+              <span class="fw-bold small text-dark"><i class="fa fa-bell me-1 text-primary"></i> Notifications History</span>
+              <button class="btn btn-link btn-xs text-muted p-0 text-decoration-none" style="font-size: 0.75rem;" onclick="clearNotificationHistory()">Clear All</button>
+            </li>
+            <div id="notificationHistoryList" class="mt-2">
+              <div class="text-center text-muted small py-3">No notifications yet</div>
+            </div>
+          </ul>
+        </div>
+      </div>
+
       <!-- ALERT BOX -->
       <div id="alertBox" class="alert alert-success d-none alert-dismissible fade show mb-3 py-2 fw-bold" role="alert">
         <span id="alertMsg"></span>
@@ -461,22 +447,22 @@
             <h6 class="fw-bold text-dark mb-0 fs-6"><i class="fa fa-list me-1"></i> Recent Enquiries Dashboard</h6>
             <button class="btn btn-sm btn-success fw-bold" onclick="openMemberExportModal()"><i class="fa fa-file-excel me-1"></i> Download Member Report</button>
           </div>
-       <!-- Quick Filter Pills -->
-      <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
-        <span class="small fw-bold text-muted"><i class="fa fa-filter me-1"></i> Quick Filter:</span>
-        <button type="button" class="btn btn-sm btn-primary active filter-pill-btn" onclick="filterByPill('ALL', this)">All</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('New Lead', this)">📌 New Lead</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Hot lead', this)">🔥 Hot Leads</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Quoted', this)">📋 Quoted</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Live', this)">⚡ Live</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Won', this)">🏆 Won</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Lost', this)">❌ Lost</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Pending', this)">⏳ Pay: Pending</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Advance Received', this)">💵 Advance</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Fully Paid', this)">✅ Fully Paid</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Partial', this)">🔸 Partial</button>
-        <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Credit', this)">💳 Credit</button>
-      </div>
+          <!-- Quick Filter Pills -->
+          <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+            <span class="small fw-bold text-muted"><i class="fa fa-filter me-1"></i> Quick Filter:</span>
+            <button type="button" class="btn btn-sm btn-primary active filter-pill-btn" onclick="filterByPill('ALL', this)">All</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('New Lead', this)">📌 New Lead</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Hot lead', this)">🔥 Hot Leads</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Quoted', this)">📋 Quoted</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Live', this)">⚡ Live</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Won', this)">🏆 Won</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Lost', this)">❌ Lost</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Pending', this)">⏳ Pay: Pending</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Advance Received', this)">💵 Advance</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Fully Paid', this)">✅ Fully Paid</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Partial', this)">🔸 Partial</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary filter-pill-btn" onclick="filterByPill('Credit', this)">💳 Credit</button>
+          </div>
           <div class="mb-3 p-2 bg-light rounded border">
             <div class="row g-2">
               <div class="col-md-3">
@@ -1095,6 +1081,7 @@
 
   let todoCalCurrentDate = new Date();
   let selectedTodoDateStr = '';
+  let notificationHistory = JSON.parse(localStorage.getItem('portal_notif_history') || '[]');
 
   function escapeHtml(str) {
     if (!str) return '';
@@ -1121,43 +1108,93 @@
     return dStr;
   }
 
-  let bannerTimer = null;
+  // --- COMBINED NOTIFICATION SYSTEM (Toast + Bell History Inbox) ---
   function showFloatingNotification(title, message, type = 'success') {
     const container = document.getElementById('toastNotificationContainer');
-    if (!container) return;
+    if (container) {
+      const toast = document.createElement('div');
+      toast.className = `custom-toast ${type}`;
+      
+      let icon = 'fa-check-circle text-success';
+      if (type === 'danger') icon = 'fa-exclamation-circle text-danger';
+      if (type === 'warning') icon = 'fa-exclamation-triangle text-warning';
 
-    const toast = document.createElement('div');
-    toast.className = `custom-toast ${type}`;
-    
-    let icon = 'fa-check-circle text-success';
-    if (type === 'danger') icon = 'fa-exclamation-circle text-danger';
-    if (type === 'warning') icon = 'fa-exclamation-triangle text-warning';
-
-    toast.innerHTML = `
-      <div class="d-flex align-items-start gap-2">
-        <i class="fa ${icon} mt-1"></i>
-        <div>
-          <div class="fw-bold">${title}</div>
-          <div class="text-muted" style="font-size: 0.78rem;">${message}</div>
+      toast.innerHTML = `
+        <div class="d-flex align-items-start gap-2">
+          <i class="fa ${icon} mt-1"></i>
+          <div>
+            <div class="fw-bold">${title}</div>
+            <div class="text-muted" style="font-size: 0.78rem;">${message}</div>
+          </div>
         </div>
-      </div>
-      <button type="button" class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
-    `;
+        <button type="button" class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
+      `;
 
-    container.appendChild(toast);
-    setTimeout(() => toast.classList.add('show'), 10);
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 10);
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
     playNotificationChime();
 
-    setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
+    const newNotif = {
+      title: title,
+      message: message,
+      type: type,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    notificationHistory.unshift(newNotif);
+    if (notificationHistory.length > 20) notificationHistory.pop();
+    
+    localStorage.setItem('portal_notif_history', JSON.stringify(notificationHistory));
+    renderNotificationHistory();
   }
 
-  function dismissFloatingBanner() {
-    const banner = document.getElementById('floatingNotificationBanner');
-    if (banner) banner.classList.remove('show');
-    if (bannerTimer) clearTimeout(bannerTimer);
+  function renderNotificationHistory() {
+    const listContainer = document.getElementById('notificationHistoryList');
+    const badge = document.getElementById('notifBadge');
+    if (!listContainer) return;
+
+    if (notificationHistory.length === 0) {
+      listContainer.innerHTML = `<div class="text-center text-muted small py-3">No notifications yet</div>`;
+      if (badge) badge.classList.add('d-none');
+      return;
+    }
+
+    if (badge) {
+      badge.innerText = notificationHistory.length;
+      badge.classList.remove('d-none');
+    }
+
+    let html = '';
+    notificationHistory.forEach(n => {
+      let iconCol = 'text-success';
+      if (n.type === 'danger') iconCol = 'text-danger';
+      if (n.type === 'warning') iconCol = 'text-warning';
+
+      html += `
+        <div class="p-2 mb-1 border-bottom bg-light rounded small">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark"><i class="fa fa-circle ${iconCol} me-1" style="font-size: 6px;"></i> ${n.title}</span>
+            <span class="text-muted" style="font-size: 0.65rem;">${n.time}</span>
+          </div>
+          <div class="text-muted mt-1" style="font-size: 0.75rem; line-height: 1.2;">${n.message}</div>
+        </div>
+      `;
+    });
+
+    listContainer.innerHTML = html;
+  }
+
+  function clearNotificationHistory() {
+    notificationHistory = [];
+    localStorage.removeItem('portal_notif_history');
+    renderNotificationHistory();
   }
 
   function checkNotificationSupport() {
@@ -1213,13 +1250,11 @@
     }
   }
 
-  // --- ROLE-BASED SIDEBAR & TAB RESTRICTION FOR ENGINEER / DELIVERY ---
   function applyRoleSidebarRestrictions() {
     if (!loggedInUser || !loggedInUser.role) return;
     const role = String(loggedInUser.role).toLowerCase();
 
     if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
-      // Hide unauthorized sidebar items
       const navAnalytics = document.getElementById('navItemAnalytics');
       const navLost = document.getElementById('navItemLost');
       const navActivity = document.getElementById('navItemActivity');
@@ -1228,13 +1263,14 @@
       if (navAnalytics) navAnalytics.style.display = 'none';
       if (navLost) navLost.style.display = 'none';
       if (navActivity) navActivity.style.display = 'none';
-      if (navDashboard) navDashboard.style.display = 'none'; // Dashboard hide ho jayega, sirf To-Do aur Conveyance bachega
+      if (navDashboard) navDashboard.style.display = 'none';
     }
   }
 
   window.addEventListener('DOMContentLoaded', function() {
     resetEnquiryForm();
     checkNotificationSupport();
+    renderNotificationHistory();
     document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
     document.getElementById('enquiryForm').addEventListener('submit', handleEnquirySubmit);
 
@@ -1242,7 +1278,6 @@
     showTab(savedTab, false);
     checkSession();
     initGeolocation();
-    
   });
 
   function toggleEnquiryForm() {
@@ -1367,14 +1402,11 @@
         document.getElementById('loggedUser').innerText = loggedInUser.salesPerson + " (" + loggedInUser.role + ")";
         applyRoleSidebarRestrictions();
 
-        // --- YAHAN LAGANA HAI YE CHECK ---
         const role = String(loggedInUser.role || '').toLowerCase();
         if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
-          // Restricted role hai toh seedha conveyance page par redirect kar do
-          window.location.replace("conveyance.html");
+          window.location.replace("?page=conveyance");
           return;
         }
-        // ---------------------------------
 
         fetchMasterData();
         checkNotificationSupport();
@@ -1385,6 +1417,7 @@
       document.getElementById('loginScreen').style.display = 'flex';
     }
   }
+
   async function fetchMasterData() {
     const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
     if (data) onMasterDataLoaded(data);
@@ -1614,24 +1647,7 @@
       loadDashboardData();
     }
   }
-function showMobileLeadsSkeleton() {
-    const container = document.getElementById('mobileLeadsContainer');
-    if (!container) return;
-    let skeletonHTML = '';
-    for (let i = 0; i < 3; i++) {
-      skeletonHTML += `
-        <div class="lead-card mb-2 p-3">
-          <div class="d-flex justify-content-between mb-2">
-            <div class="skeleton-loader" style="width: 80px; height: 16px;">&nbsp;</div>
-            <div class="skeleton-loader" style="width: 60px; height: 16px;">&nbsp;</div>
-          </div>
-          <div class="skeleton-loader mb-2" style="width: 150px; height: 18px;">&nbsp;</div>
-          <div class="skeleton-loader" style="width: 100px; height: 14px;">&nbsp;</div>
-        </div>
-      `;
-    }
-    container.innerHTML = skeletonHTML;
-  }
+
   async function loadDashboardData() {
     if (!loggedInUser) return;
     const data = await callAppsScriptApi("getDashboardData", { user: loggedInUser });
@@ -1735,17 +1751,8 @@ function showMobileLeadsSkeleton() {
     currentPage = 1;
     renderPaginatedTable();
   }
-let searchDebounceTimer = null;
 
-  function handleDebouncedSearch(event) {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
-      applyDashboardFilters();
-    }, 300); // 300ms delay for smooth typing without lag
-  }
-
- function filterByPill(statusType, btnEl) {
-    // Update active pill button UI style
+  function filterByPill(statusType, btnEl) {
     document.querySelectorAll('.filter-pill-btn').forEach(b => {
       b.classList.remove('btn-primary', 'active');
       b.classList.add('btn-outline-secondary');
@@ -1754,7 +1761,6 @@ let searchDebounceTimer = null;
     btnEl.classList.add('btn-primary', 'active');
 
     const paymentStatuses = ['Pending', 'Advance Received', 'Fully Paid', 'Partial', 'Credit'];
-
     const statusEl = document.getElementById('filterStatus');
     const paymentEl = document.getElementById('filterPaymentStatus');
 
@@ -1779,6 +1785,7 @@ let searchDebounceTimer = null;
       applyDashboardFilters();
     }
   }
+
   function renderPaginatedTable() {
     const totalItems = filteredEnquiriesList.length;
     const startIndex = (currentPage - 1) * pageSize;
@@ -2070,10 +2077,9 @@ let searchDebounceTimer = null;
       dispatch: dispatchVal,
       lostReason: lostReasonVal,
       remark: remarkVal,
-      user: loggedInUser // <--- YAHAN 'user: loggedInUser' MISSING THA, JISSE WEB SE UPDATE FAIL HO RAHI THI!
+      user: loggedInUser
     };
 
-    // 1. Instant UI Real-time update (Optimistic UI update)
     const localLead = globalEnquiries.find(e => String(e.id) === String(enqId));
     if (localLead) {
       localLead.value = Number(approxVal) || 0;
@@ -2088,14 +2094,12 @@ let searchDebounceTimer = null;
     }
     applyDashboardFilters();
 
-    // 2. Close Modal instantly for lightning fast user experience
     const modalEl = document.getElementById('leadDetailsModal');
     if (modalEl) {
       const modalInstance = bootstrap.Modal.getInstance(modalEl);
       if (modalInstance) modalInstance.hide();
     }
 
-    // 3. Send to Server via Vercel API Bridge
     const res = await callAppsScriptApi("updateEnquiryFull", payload);
     
     if (saveBtn) {
@@ -2105,11 +2109,10 @@ let searchDebounceTimer = null;
 
     if (res && res.success) {
       showFloatingNotification("Updated Successfully", `Enquiry ${enqId} updated to ${stVal}`);
-      // Background sync to ensure data consistency with Google Sheet
       loadDashboardData();
     } else {
       showAlert("Failed: " + (res ? res.message : 'Error'), "danger");
-      loadDashboardData(); // Rollback/Re-fetch original data if server failed
+      loadDashboardData();
     }
   }
 
