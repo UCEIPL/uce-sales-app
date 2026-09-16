@@ -88,10 +88,51 @@
       cursor: pointer;
     }
     #floatingNotificationBanner.show { top: 20px; }
+    /* TOAST NOTIFICATION STACK CONTAINER */
+#toastNotificationContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 320px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.custom-toast {
+  background: #ffffff;
+  color: #333333;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-left: 5px solid #0d6efd;
+  font-size: 0.85rem;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: all 0.3s ease-in-out;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.custom-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.custom-toast.success { border-left-color: #198754; }
+.custom-toast.danger { border-left-color: #dc3545; }
+.custom-toast.warning { border-left-color: #ffc107; }
   </style>
 </head>
 <body>
-
+<!-- TOAST CONTAINER -->
+<div id="toastNotificationContainer"></div>
+  
 <!-- FLOATING NOTIFICATION POPUP -->
 <div id="floatingNotificationBanner" onclick="dismissFloatingBanner()">
   <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; min-width: 36px;">
@@ -1081,18 +1122,36 @@
   }
 
   let bannerTimer = null;
-  function showFloatingNotification(title, message) {
+  function showFloatingNotification(title, message, type = 'success') {
+    const container = document.getElementById('toastNotificationContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `custom-toast ${type}`;
+    
+    let icon = 'fa-check-circle text-success';
+    if (type === 'danger') icon = 'fa-exclamation-circle text-danger';
+    if (type === 'warning') icon = 'fa-exclamation-triangle text-warning';
+
+    toast.innerHTML = `
+      <div class="d-flex align-items-start gap-2">
+        <i class="fa ${icon} mt-1"></i>
+        <div>
+          <div class="fw-bold">${title}</div>
+          <div class="text-muted" style="font-size: 0.78rem;">${message}</div>
+        </div>
+      </div>
+      <button type="button" class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
+    `;
+
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
     playNotificationChime();
-    const banner = document.getElementById('floatingNotificationBanner');
-    const titleEl = document.getElementById('floatBannerTitle');
-    const msgEl = document.getElementById('floatBannerMsg');
-    if (banner && titleEl && msgEl) {
-      titleEl.innerText = title;
-      msgEl.innerText = message;
-      banner.classList.add('show');
-      if (bannerTimer) clearTimeout(bannerTimer);
-      bannerTimer = setTimeout(() => { banner.classList.remove('show'); }, 5000);
-    }
+
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
   }
 
   function dismissFloatingBanner() {
