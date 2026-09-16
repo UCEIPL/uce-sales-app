@@ -1669,7 +1669,34 @@ function showMobileLeadsSkeleton() {
     currentPage = 1;
     renderPaginatedTable();
   }
+let searchDebounceTimer = null;
 
+  function handleDebouncedSearch(event) {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      applyDashboardFilters();
+    }, 300); // 300ms delay for smooth typing without lag
+  }
+
+  function filterByPill(statusType, btnEl) {
+    // Update active pill button UI style
+    document.querySelectorAll('.filter-pill-btn').forEach(b => {
+      b.classList.remove('btn-primary', 'active');
+      b.classList.add('btn-outline-secondary');
+    });
+    btnEl.classList.remove('btn-outline-secondary');
+    btnEl.classList.add('btn-primary', 'active');
+
+    // Apply status or payment filter based on clicked pill
+    if (statusType === 'Pending') {
+      document.getElementById('filterPaymentStatus').value = 'Pending';
+      document.getElementById('filterStatus').value = 'ALL';
+    } else {
+      document.getElementById('filterPaymentStatus').value = 'ALL';
+      document.getElementById('filterStatus').value = statusType;
+    }
+    applyDashboardFilters();
+  }
   function renderPaginatedTable() {
     const totalItems = filteredEnquiriesList.length;
     const startIndex = (currentPage - 1) * pageSize;
