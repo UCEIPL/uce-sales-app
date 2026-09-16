@@ -1899,19 +1899,52 @@
       saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving Updates...';
     }
 
+    const enqId = document.getElementById('editEnqId').value;
+    const approxVal = document.getElementById('editApproxValue').value;
+    const payStatusVal = document.getElementById('editPaymentStatus').value;
+    const leadFupVal = document.getElementById('editLeadFollowup').value;
+    const payTermsVal = document.getElementById('editPaymentTerms').value;
+    const payFupVal = document.getElementById('editPaymentFollowup').value;
+    const dispatchVal = document.getElementById('editDispatch').value;
+    const remarkVal = document.getElementById('editRemark').value;
+
     const payload = {
-      id: document.getElementById('editEnqId').value,
-      approxValue: document.getElementById('editApproxValue').value,
+      id: enqId,
+      approxValue: approxVal,
       status: stVal,
-      paymentStatus: document.getElementById('editPaymentStatus').value,
-      leadFollowup: document.getElementById('editLeadFollowup').value,
-      paymentTerms: document.getElementById('editPaymentTerms').value,
-      paymentFollowup: document.getElementById('editPaymentFollowup').value,
-      dispatch: document.getElementById('editDispatch').value,
+      paymentStatus: payStatusVal,
+      leadFollowup: leadFupVal,
+      paymentTerms: payTermsVal,
+      paymentFollowup: payFupVal,
+      dispatch: dispatchVal,
       lostReason: lostReasonVal,
-      remark: document.getElementById('editRemark').value
+      remark: remarkVal,
+      user: loggedInUser // <--- YAHAN 'user: loggedInUser' MISSING THA, JISSE WEB SE UPDATE FAIL HO RAHI THI!
     };
 
+    // 1. Instant UI Real-time update (Optimistic UI update)
+    const localLead = globalEnquiries.find(e => String(e.id) === String(enqId));
+    if (localLead) {
+      localLead.value = Number(approxVal) || 0;
+      localLead.status = stVal;
+      localLead.paymentStatus = payStatusVal;
+      localLead.leadFollowup = leadFupVal;
+      localLead.paymentTerms = payTermsVal;
+      localLead.paymentFollowup = payFupVal;
+      localLead.dispatch = dispatchVal;
+      localLead.lostReason = lostReasonVal;
+      localLead.remark = remarkVal;
+    }
+    applyDashboardFilters();
+
+    // 2. Close Modal instantly for lightning fast user experience
+    const modalEl = document.getElementById('leadDetailsModal');
+    if (modalEl) {
+      const modalInstance = bootstrap.Modal.getInstance(modalEl);
+      if (modalInstance) modalInstance.hide();
+    }
+
+    // 3. Send to Server via Vercel API Bridge
     const res = await callAppsScriptApi("updateEnquiryFull", payload);
     
     if (saveBtn) {
@@ -1920,12 +1953,12 @@
     }
 
     if (res && res.success) {
-      showFloatingNotification("Updated Successfully", `Enquiry ${payload.id} updated to ${payload.status}`);
-      const modalEl = document.getElementById('leadDetailsModal');
-      if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
+      showFloatingNotification("Updated Successfully", `Enquiry ${enqId} updated to ${stVal}`);
+      // Background sync to ensure data consistency with Google Sheet
       loadDashboardData();
     } else {
       showAlert("Failed: " + (res ? res.message : 'Error'), "danger");
+      loadDashboardData(); // Rollback/Re-fetch original data if server failed
     }
   }
 
