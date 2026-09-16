@@ -1696,17 +1696,29 @@ let searchDebounceTimer = null;
 
     const paymentStatuses = ['Pending', 'Advance Received', 'Fully Paid', 'Partial', 'Credit'];
 
+    const statusEl = document.getElementById('filterStatus');
+    const paymentEl = document.getElementById('filterPaymentStatus');
+
     if (statusType === 'ALL') {
-      document.getElementById('filterStatus').value = 'ALL';
-      document.getElementById('filterPaymentStatus').value = 'ALL';
+      if (statusEl) statusEl.value = 'ALL';
+      if (paymentEl) paymentEl.value = 'ALL';
     } else if (paymentStatuses.includes(statusType)) {
-      document.getElementById('filterPaymentStatus').value = statusType;
-      document.getElementById('filterStatus').value = 'ALL';
+      if (statusEl) statusEl.value = 'ALL';
+      if (paymentEl) {
+        paymentEl.value = statusType;
+        paymentEl.dispatchEvent(new Event('change'));
+      }
     } else {
-      document.getElementById('filterPaymentStatus').value = 'ALL';
-      document.getElementById('filterStatus').value = statusType;
+      if (paymentEl) paymentEl.value = 'ALL';
+      if (statusEl) {
+        statusEl.value = statusType;
+        statusEl.dispatchEvent(new Event('change'));
+      }
     }
-    applyDashboardFilters();
+    
+    if (typeof applyDashboardFilters === 'function') {
+      applyDashboardFilters();
+    }
   }
   function renderPaginatedTable() {
     const totalItems = filteredEnquiriesList.length;
