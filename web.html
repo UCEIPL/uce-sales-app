@@ -1685,7 +1685,7 @@ let searchDebounceTimer = null;
     }, 300); // 300ms delay for smooth typing without lag
   }
 
-  function filterByPill(statusType, btnEl) {
+ function filterByPill(statusType, btnEl) {
     // Update active pill button UI style
     document.querySelectorAll('.filter-pill-btn').forEach(b => {
       b.classList.remove('btn-primary', 'active');
@@ -1694,9 +1694,13 @@ let searchDebounceTimer = null;
     btnEl.classList.remove('btn-outline-secondary');
     btnEl.classList.add('btn-primary', 'active');
 
-    // Apply status or payment filter based on clicked pill
-    if (statusType === 'Pending') {
-      document.getElementById('filterPaymentStatus').value = 'Pending';
+    const paymentStatuses = ['Pending', 'Advance Received', 'Fully Paid', 'Partial', 'Credit'];
+
+    if (statusType === 'ALL') {
+      document.getElementById('filterStatus').value = 'ALL';
+      document.getElementById('filterPaymentStatus').value = 'ALL';
+    } else if (paymentStatuses.includes(statusType)) {
+      document.getElementById('filterPaymentStatus').value = statusType;
       document.getElementById('filterStatus').value = 'ALL';
     } else {
       document.getElementById('filterPaymentStatus').value = 'ALL';
