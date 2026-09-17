@@ -1154,9 +1154,24 @@
   }
 
   async function fetchMasterData() {
-    const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
-    if (!data || !data.success) return;
+    const cached = sessionStorage.getItem('portal_master_data');
+    if (cached) {
+      try {
+        onMasterDataLoaded(JSON.parse(cached));
+      } catch (e) {
+        sessionStorage.removeItem('portal_master_data');
+      }
+    }
 
+    const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
+    if (data && data.success) {
+      sessionStorage.setItem('portal_master_data', JSON.stringify(data));
+      onMasterDataLoaded(data);
+    }
+  }
+
+  function onMasterDataLoaded(data) {
+    if (!data) return;
     rawCustomers = data.customers || [];
     masterSalesPersons = data.salesPersons || [];
     renderBrandCheckboxesMob(data.brands || []);
@@ -1262,9 +1277,26 @@
   }
 
   async function loadDashboard() {
-    const data = await callAppsScriptApi("getDashboardData", { user: loggedInUser });
-    if (!data || !data.success) return;
+    if (!loggedInUser) return;
 
+    const cached = sessionStorage.getItem('portal_dashboard_data');
+    if (cached) {
+      try {
+        renderDashboardData(JSON.parse(cached));
+      } catch (e) {
+        sessionStorage.removeItem('portal_dashboard_data');
+      }
+    }
+
+    const data = await callAppsScriptApi("getDashboardData", { user: loggedInUser });
+    if (data && data.success) {
+      sessionStorage.setItem('portal_dashboard_data', JSON.stringify(data));
+      renderDashboardData(data);
+    }
+  }
+
+  function renderDashboardData(data) {
+    if (!data) return;
     globalEnquiries = data.enquiries || [];
     globalActivities = data.activities || [];
     globalTasks = data.tasks || [];
@@ -1392,7 +1424,6 @@
       let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${item.leadFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
       let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${item.paymentFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
       
-      // Delivery status sirf Won ke liye dikhega
       let deliveryBadge = '';
       if (String(item.status).toLowerCase() === 'won') {
         let dVal = item.dispatch || 'Pending';
@@ -1682,6 +1713,7 @@
     const res = await callAppsScriptApi("quickSnoozeEnquiry", { id: activeId, type: snoozeType, newDate: snoozeDate, user: loggedInUser ? loggedInUser.salesPerson : 'Admin' });
     if (res && res.success) {
       showFloatingNotification("Snooze Saved", res.message);
+      sessionStorage.removeItem('portal_dashboard_data');
       const modalEl = document.getElementById('leadDetailsModal');
       if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboard();
@@ -1699,6 +1731,7 @@
     const res = await callAppsScriptApi("transferLeadOwner", { id: activeId, targetSp: targetSp, user: loggedInUser ? loggedInUser.salesPerson : 'Admin' });
     if (res && res.success) {
       showFloatingNotification("Lead Transferred", res.message);
+      sessionStorage.removeItem('portal_dashboard_data');
       const modalEl = document.getElementById('leadDetailsModal');
       if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboard();
@@ -1797,6 +1830,7 @@
       user: loggedInUser
     };
 
+    sessionStorage.removeItem('portal_dashboard_data');
     const res = await callAppsScriptApi("updateEnquiryFull", payload);
     
     if (saveBtn) {
@@ -1806,6 +1840,7 @@
 
     if (res && res.success) {
       showFloatingNotification("Updated Successfully", `Enquiry ${payload.id} updated to ${payload.status}`);
+      sessionStorage.removeItem('portal_dashboard_data');
       const modalEl = document.getElementById('leadDetailsModal');
       if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboard();
@@ -1925,6 +1960,7 @@
 
     if (res && res.success) {
       showFloatingNotification("Activity Logged", `${type} recorded for ${cust}`);
+      sessionStorage.removeItem('portal_dashboard_data');
       document.getElementById('mobModalActCust').value = '';
       document.getElementById('mobModalActRemark').value = '';
       loadDashboard();
@@ -2046,11 +2082,13 @@
       longitude: userGeoCoords ? userGeoCoords.longitude : ''
     };
 
+    sessionStorage.removeItem('portal_dashboard_data');
     const res = await callAppsScriptApi("saveEnquiry", formData);
     saveBtn.disabled = false; saveBtn.innerText = "SAVE";
 
     if (res && res.success) {
       showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
+      sessionStorage.removeItem('portal_dashboard_data');
       resetMobileEnquiryForm();
       switchTab('leads');
       loadDashboard();
@@ -2142,6 +2180,7 @@
 
   function logout() {
     localStorage.clear();
+    sessionStorage.clear();
     location.reload();
   }
 
