@@ -482,13 +482,13 @@
                   <option value="Credit">Credit</option>
                 </select>
               </div>
-              <!-- Added Delivery Status Filter -->
+              <!-- Delivery Status Filter -->
               <div class="col-md-3">
                 <label class="form-label mb-1">Delivery Status</label>
                 <select id="filterDispatchStatus" onchange="applyDashboardFilters()" class="form-select form-select-sm">
                   <option value="ALL">All Delivery Status</option>
                   <option value="Dispatched">Dispatched</option>
-                  <option value="Intransit">Intransit</option>
+                  <option value="Pending">Pending</option>
                   <option value="Delivered">Delivered</option>
                 </select>
               </div>
@@ -679,7 +679,7 @@
           <div class="col-12">
             <div class="card p-3">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="small text-muted"><i class="fa fa-info-circle me-1"></i> Kisi bhi date par click karke direct Call/Visit log karein.</span>
+                <span class="small text-muted"><i class="fa fa-info-circle me-1"></i> Kisi bhi date par click karke direct task add ya complete karein.</span>
                 <span class="badge bg-light text-dark border" id="matrixTotalSummary">Total: 0 Calls | 0 Visits</span>
               </div>
               <div class="cal-header">
@@ -1020,12 +1020,12 @@
             <label class="form-label">Dispatch Info</label>
             <input type="text" id="editDispatch" class="form-control form-control-sm">
           </div>
-          <!-- Delivery Status Box (Only enabled when Status is Won) -->
+          <!-- Delivery Status Box (Only visible/active when Status is Won) -->
           <div class="col-md-4" id="deliveryStatusWrapper">
             <label class="form-label text-info fw-bold" id="deliveryStatusLabel">Delivery Status</label>
             <select id="editDispatchStatus" class="form-select form-select-sm fw-bold border-info">
               <option value="Dispatched">Dispatched</option>
-              <option value="Intransit">Intransit</option>
+              <option value="Pending">Pending</option>
               <option value="Delivered">Delivered</option>
             </select>
           </div>
@@ -1840,10 +1840,10 @@
         // Delivery status sirf Won ke liye dikhega table mein, baki mein '-'
         let dispatchHtml = '<span class="text-muted">-</span>';
         if (String(item.status).toLowerCase() === 'won') {
-          let dispatchVal = item.dispatch || 'Dispatched';
+          let dispatchVal = item.dispatch || 'Pending';
           let dispatchBadgeColor = 'bg-secondary';
           if (dispatchVal === 'Dispatched') dispatchBadgeColor = 'bg-info text-dark';
-          if (dispatchVal === 'Intransit') dispatchBadgeColor = 'bg-warning text-dark';
+          if (dispatchVal === 'Pending') dispatchBadgeColor = 'bg-warning text-dark';
           if (dispatchVal === 'Delivered') dispatchBadgeColor = 'bg-success';
           dispatchHtml = `<span class="badge ${dispatchBadgeColor}">${escapeHtml(dispatchVal)}</span>`;
         }
@@ -1933,7 +1933,6 @@
     document.getElementById('modalLostReasonContainer').classList.toggle('d-none', stVal !== 'Lost');
   }
 
-  // Delivery status condition check for Modal
   function checkDeliveryStatusCondition() {
     const stVal = document.getElementById('editStatus').value;
     const deliveryWrapper = document.getElementById('deliveryStatusWrapper');
@@ -1956,7 +1955,7 @@
     document.getElementById('mMode').innerText = item.mode || '-';
     document.getElementById('mSalesPerson').innerText = item.salesPerson || '-';
     document.getElementById('mDescription').innerText = item.description || '-';
-    document.getElementById('editDispatchStatus').value = item.dispatch || 'Dispatched';
+    document.getElementById('editDispatchStatus').value = item.dispatch || 'Pending';
 
     const masterCustomer = findMasterCustomer(item.customer, item.salesPerson);
     document.getElementById('mCustContact').innerText = masterCustomer ? getCustomerField(masterCustomer, ['contactPerson', 'contact']) : '-';
@@ -2107,7 +2106,7 @@
     const leadFupVal = document.getElementById('editLeadFollowup').value;
     const payTermsVal = document.getElementById('editPaymentTerms').value;
     const payFupVal = document.getElementById('editPaymentFollowup').value;
-    const dispatchVal = (stVal.toLowerCase() === 'won') ? document.getElementById('editDispatchStatus').value : 'Dispatched';
+    const dispatchVal = (stVal.toLowerCase() === 'won') ? document.getElementById('editDispatchStatus').value : 'Pending';
     const remarkVal = document.getElementById('editRemark').value;
 
     const payload = {
@@ -2319,7 +2318,7 @@
 
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
-    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson'].value : 'ALL';
+    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
 
     const grid = document.getElementById('todoCalendarDays');
     if (!grid) return;
@@ -2362,7 +2361,7 @@
     document.getElementById('modalTodoTitle').value = '';
     
     const spInput = document.getElementById('modalTodoSalesPerson');
-    const activeSpFilter = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson'].value : 'ALL';
+    const activeSpFilter = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
     if (spInput) {
       if (activeSpFilter !== 'ALL') spInput.value = activeSpFilter;
       else if (loggedInUser && loggedInUser.salesPerson) spInput.value = loggedInUser.salesPerson;
@@ -2373,7 +2372,7 @@
   }
 
   function renderModalTodoList() {
-    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson'].value : 'ALL';
+    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
     const tasks = (globalTasks || []).filter(t => normalizeDateForMatch(t.dueDate) === selectedTodoDateStr && (selectedSp === 'ALL' || t.salesPerson === selectedSp));
     const tbody = document.getElementById('modalTodoTableBody');
     if (!tbody) return;
