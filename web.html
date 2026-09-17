@@ -406,7 +406,10 @@
                   <input type="date" class="form-control form-control-sm fw-bold border-success bg-light" id="paymentFollowupDate">
                 </div>
 
-               
+                <div class="col-12 col-md-6">
+                  <label class="form-label">Dispatch Info</label>
+                  <input type="text" class="form-control form-control-sm" id="dispatch" placeholder="Dispatch details...">
+                </div>
 
                 <div class="col-12 col-md-6">
                   <label class="form-label">Internal Remark / Notes</label>
@@ -479,13 +482,23 @@
                   <option value="Credit">Credit</option>
                 </select>
               </div>
+              <!-- Added Delivery Status Filter -->
+              <div class="col-md-3">
+                <label class="form-label mb-1">Delivery Status</label>
+                <select id="filterDispatchStatus" onchange="applyDashboardFilters()" class="form-select form-select-sm">
+                  <option value="ALL">All Delivery Status</option>
+                  <option value="Dispatched">Dispatched</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Delivered">Delivered</option>
+                </select>
+              </div>
               <div class="col-md-3">
                 <label class="form-label mb-1">Sales Person</label>
                 <select id="filterSalesPerson" onchange="onSalespersonFilterChange()" class="form-select form-select-sm">
                   <option value="ALL">All Team Member</option>
                 </select>
               </div>
-              <div class="col-md-9 d-flex align-items-end justify-content-end gap-1">
+              <div class="col-md-6 d-flex align-items-end justify-content-end gap-1">
                 <button class="btn btn-sm btn-outline-secondary" onclick="clearDateRangeFilter()" title="Clear Dates">Clear Dates</button>
                 <button class="btn btn-sm btn-outline-primary" onclick="loadDashboardData()" title="Refresh">🔄 Refresh</button>
               </div>
@@ -972,7 +985,7 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">Status *</label>
-            <select id="editStatus" class="form-select form-select-sm fw-bold" onchange="toggleModalLostReason()">
+            <select id="editStatus" class="form-select form-select-sm fw-bold" onchange="toggleModalLostReason(); checkDeliveryStatusCondition();">
               <option value="New Lead">New Lead</option>
               <option value="Hot lead">Hot lead</option>
               <option value="Live">Live</option>
@@ -1007,8 +1020,9 @@
             <label class="form-label">Dispatch Info</label>
             <input type="text" id="editDispatch" class="form-control form-control-sm">
           </div>
-          <div class="col-md-4">
-            <label class="form-label text-info fw-bold">Delivery Status</label>
+          <!-- Delivery Status Box (Only enabled when Status is Won) -->
+          <div class="col-md-4" id="deliveryStatusWrapper">
+            <label class="form-label text-info fw-bold" id="deliveryStatusLabel">Delivery Status</label>
             <select id="editDispatchStatus" class="form-select form-select-sm fw-bold border-info">
               <option value="Dispatched">Dispatched</option>
               <option value="Pending">Pending</option>
@@ -1726,6 +1740,7 @@
     const spFilter = document.getElementById('filterSalesPerson').value;
     const stFilter = document.getElementById('filterStatus').value;
     const payFilter = document.getElementById('filterPaymentStatus').value;
+    const dispatchFilter = document.getElementById('filterDispatchStatus').value;
     const searchVal = document.getElementById('searchInput').value.trim().toLowerCase();
 
     filteredEnquiriesList = globalEnquiries || [];
@@ -1747,6 +1762,7 @@
     if (spFilter !== 'ALL' && spFilter !== '') filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.salesPerson || '').toLowerCase() === spFilter.toLowerCase());
     if (stFilter !== 'ALL') filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.status || '').toLowerCase() === stFilter.toLowerCase());
     if (payFilter !== 'ALL') filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.paymentStatus || '').toLowerCase() === payFilter.toLowerCase());
+    if (dispatchFilter !== 'ALL') filteredEnquiriesList = filteredEnquiriesList.filter(item => String(item.dispatch || '').toLowerCase() === dispatchFilter.toLowerCase());
 
     currentPage = 1;
     renderPaginatedTable();
@@ -1821,12 +1837,16 @@
         let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${escapeHtml(item.leadFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
         let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${escapeHtml(item.paymentFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
         
-        let dispatchVal = item.dispatch || 'Dispatched';
-        let dispatchBadgeColor = 'bg-secondary';
-        if (dispatchVal === 'Dispatched') dispatchBadgeColor = 'bg-info text-dark';
-        if (dispatchVal === 'Pending') dispatchBadgeColor = 'bg-warning text-dark';
-        if (dispatchVal === 'Delivered') dispatchBadgeColor = 'bg-success';
-        let dispatchHtml = `<span class="badge ${dispatchBadgeColor}">${escapeHtml(dispatchVal)}</span>`;
+        // Delivery status sirf Won ke liye dikhega table mein, baki mein '-'
+        let dispatchHtml = '<span class="text-muted">-</span>';
+        if (String(item.status).toLowerCase() === 'won') {
+          let dispatchVal = item.dispatch || 'Dispatched';
+          let dispatchBadgeColor = 'bg-secondary';
+          if (dispatchVal === 'Dispatched') dispatchBadgeColor = 'bg-info text-dark';
+          if (dispatchVal === 'Pending') dispatchBadgeColor = 'bg-warning text-dark';
+          if (dispatchVal === 'Delivered') dispatchBadgeColor = 'bg-success';
+          dispatchHtml = `<span class="badge ${dispatchBadgeColor}">${escapeHtml(dispatchVal)}</span>`;
+        }
 
         let duplicateWarningIcon = item.isDuplicate ? `<span class="badge bg-warning text-dark ms-1" title="${escapeHtml(item.isDuplicate)}">⚠️ Duplicate</span>` : '';
 
@@ -1913,6 +1933,17 @@
     document.getElementById('modalLostReasonContainer').classList.toggle('d-none', stVal !== 'Lost');
   }
 
+  // Delivery status condition check for Modal
+  function checkDeliveryStatusCondition() {
+    const stVal = document.getElementById('editStatus').value;
+    const deliveryWrapper = document.getElementById('deliveryStatusWrapper');
+    if (stVal.toLowerCase() === 'won') {
+      deliveryWrapper.classList.remove('d-none');
+    } else {
+      deliveryWrapper.classList.add('d-none');
+    }
+  }
+
   function openEditModal(id) {
     const item = globalEnquiries.find(e => String(e.id) === String(id));
     if (!item) return;
@@ -1945,6 +1976,7 @@
     document.getElementById('editRemark').value = item.remark || '';
 
     toggleModalLostReason();
+    checkDeliveryStatusCondition();
     fetchAndRenderDynamicCustomerDetails(item.customer, item.salesPerson);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('leadDetailsModal')).show();
   }
@@ -2075,7 +2107,7 @@
     const leadFupVal = document.getElementById('editLeadFollowup').value;
     const payTermsVal = document.getElementById('editPaymentTerms').value;
     const payFupVal = document.getElementById('editPaymentFollowup').value;
-    const dispatchVal = document.getElementById('editDispatch').value;
+    const dispatchVal = (stVal.toLowerCase() === 'won') ? document.getElementById('editDispatchStatus').value : 'Dispatched';
     const remarkVal = document.getElementById('editRemark').value;
 
     const payload = {
@@ -2086,7 +2118,7 @@
       leadFollowup: leadFupVal,
       paymentTerms: payTermsVal,
       paymentFollowup: payFupVal,
-      dispatch: document.getElementById('editDispatchStatus').value,
+      dispatch: dispatchVal,
       lostReason: lostReasonVal,
       remark: remarkVal,
       user: loggedInUser
@@ -2100,7 +2132,7 @@
       localLead.leadFollowup = leadFupVal;
       localLead.paymentTerms = payTermsVal;
       localLead.paymentFollowup = payFupVal;
-      localLead.dispatch = document.getElementById('editDispatchStatus').value;
+      localLead.dispatch = dispatchVal;
       localLead.lostReason = lostReasonVal;
       localLead.remark = remarkVal;
     }
@@ -2287,7 +2319,7 @@
 
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
-    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
+    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson'].value : 'ALL';
 
     const grid = document.getElementById('todoCalendarDays');
     if (!grid) return;
@@ -2330,7 +2362,7 @@
     document.getElementById('modalTodoTitle').value = '';
     
     const spInput = document.getElementById('modalTodoSalesPerson');
-    const activeSpFilter = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
+    const activeSpFilter = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson'].value : 'ALL';
     if (spInput) {
       if (activeSpFilter !== 'ALL') spInput.value = activeSpFilter;
       else if (loggedInUser && loggedInUser.salesPerson) spInput.value = loggedInUser.salesPerson;
@@ -2341,7 +2373,7 @@
   }
 
   function renderModalTodoList() {
-    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
+    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson'].value : 'ALL';
     const tasks = (globalTasks || []).filter(t => normalizeDateForMatch(t.dueDate) === selectedTodoDateStr && (selectedSp === 'ALL' || t.salesPerson === selectedSp));
     const tbody = document.getElementById('modalTodoTableBody');
     if (!tbody) return;
