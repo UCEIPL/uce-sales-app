@@ -1658,14 +1658,14 @@
     document.getElementById('editRemark').value = item.remark || '';
 
     const isWonAndPaid = String(item.status).toLowerCase() === 'won' && String(item.paymentStatus).toLowerCase() === 'fully paid';
-    const isLocked = isWonAndPaid && (Number(item.editCount) >= 2);
+    const isLocked = isWonAndPaid && (Number(item.editCount) >= 4);
     const lockNotice = document.getElementById('modalLockNotice');
     const saveBtn = document.getElementById('saveUpdateBtn');
 
     if (lockNotice && saveBtn) {
       lockNotice.classList.toggle('d-none', !isLocked);
       saveBtn.disabled = isLocked;
-      saveBtn.innerText = isLocked ? "🔒 Locked (Max 2 Edits Reached)" : "SAVE ALL UPDATES";
+      saveBtn.innerText = isLocked ? "🔒 Locked (Max 4 Edits Reached)" : "SAVE ALL UPDATES";
     }
 
     toggleModalWonStatusFields();
