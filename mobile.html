@@ -296,7 +296,17 @@
               <option value="Credit">Credit</option>
             </select>
           </div>
-          <div class="col-12">
+          <!-- Delivery Status Filter -->
+          <div class="col-6">
+            <label class="form-label extra-small mb-0">Delivery Status</label>
+            <select id="filterDispatchStatus" onchange="applyFilters()" class="form-select form-select-sm">
+              <option value="ALL">All Delivery Status</option>
+              <option value="Dispatched">Dispatched</option>
+              <option value="Pending">Pending</option>
+              <option value="Delivered">Delivered</option>
+            </select>
+          </div>
+          <div class="col-6">
             <label class="form-label extra-small mb-0">Sales Person</label>
             <select id="filterSalesPerson" onchange="onSalespersonFilterChange()" class="form-select form-select-sm">
               <option value="ALL">All Team Member</option>
@@ -703,7 +713,7 @@
           </div>
           <div class="col-6">
             <label class="form-label">Status *</label>
-            <select id="editStatus" class="form-select" onchange="toggleModalLostReason()">
+            <select id="editStatus" class="form-select" onchange="toggleModalLostReason(); checkDeliveryStatusCondition();">
               <option value="New Lead">New Lead</option>
               <option value="Hot lead">Hot lead</option>
               <option value="Quoted">Quoted</option>
@@ -737,6 +747,15 @@
           <div class="col-12">
             <label class="form-label">Dispatch Info</label>
             <input type="text" id="editDispatch" class="form-control" placeholder="Dispatch details...">
+          </div>
+          <!-- Delivery Status Box (Only visible when Status is Won) -->
+          <div class="col-12 d-none" id="deliveryStatusWrapperMob">
+            <label class="form-label text-info fw-bold">Delivery Status (Won Leads Only)</label>
+            <select id="editDispatchStatus" class="form-select fw-bold border-info">
+              <option value="Dispatched">Dispatched</option>
+              <option value="Pending">Pending</option>
+              <option value="Delivered">Delivered</option>
+            </select>
           </div>
           <div id="modalLostReasonContainer" class="col-12 d-none">
             <label class="form-label text-danger">Lost Reason Details *</label>
@@ -939,7 +958,6 @@
     modalBody.scrollBy({ top: direction === 'up' ? -180 : 180, behavior: 'smooth' });
   }
 
-  // --- ROLE-BASED NAVIGATION RESTRICTION FOR ENGINEER / DELIVERY ---
   function applyRoleNavigationRestrictions() {
     if (!loggedInUser || !loggedInUser.role) return;
     const role = String(loggedInUser.role).toLowerCase();
@@ -950,7 +968,6 @@
     }
 
     if (role.indexOf('engineer') > -1 || role.indexOf('delivery') > -1 || role.indexOf('employee') > -1) {
-      // Hide unauthorized bottom navigation buttons for Engineer/Delivery
       const leadsBtn = document.getElementById('nb-leads');
       const addBtn = document.getElementById('nb-add');
       const analyticsBtn = document.getElementById('nb-analytics');
@@ -1322,6 +1339,7 @@
     const toDate = document.getElementById('filterToDate').value;
     const st = document.getElementById('filterStatus').value;
     const paySt = document.getElementById('filterPaymentStatus').value;
+    const dispatchSt = document.getElementById('filterDispatchStatus').value;
     const sp = document.getElementById('filterSalesPerson') ? document.getElementById('filterSalesPerson').value : 'ALL';
     const searchVal = document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim().toLowerCase() : '';
 
@@ -1343,6 +1361,7 @@
     if (toDate) filteredList = filteredList.filter(e => e.date && e.date <= toDate);
     if (st !== 'ALL') filteredList = filteredList.filter(e => String(e.status).toLowerCase() === st.toLowerCase());
     if (paySt !== 'ALL') filteredList = filteredList.filter(e => String(e.paymentStatus).toLowerCase() === paySt.toLowerCase());
+    if (dispatchSt !== 'ALL') filteredList = filteredList.filter(e => String(e.dispatch || '').toLowerCase() === dispatchSt.toLowerCase());
     if (sp !== 'ALL' && sp !== '') filteredList = filteredList.filter(e => String(e.salesPerson || '').toLowerCase() === sp.toLowerCase());
 
     currentPage = 1;
@@ -1372,13 +1391,28 @@
 
       let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${item.leadFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
       let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${item.paymentFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
+      
+      // Delivery status sirf Won ke liye dikhega
+      let deliveryBadge = '';
+      if (String(item.status).toLowerCase() === 'won') {
+        let dVal = item.dispatch || 'Pending';
+        let dColor = 'bg-secondary';
+        if (dVal === 'Dispatched') dColor = 'bg-info text-dark';
+        if (dVal === 'Pending') dColor = 'bg-warning text-dark';
+        if (dVal === 'Delivered') dColor = 'bg-success';
+        deliveryBadge = `<span class="badge ${dColor} ms-1">Delivery: ${escapeHtml(dVal)}</span>`;
+      }
+
       let duplicateWarningIcon = item.isDuplicate ? `<span class="badge bg-warning text-dark ms-1">⚠️ Duplicate</span>` : '';
 
       html += `
         <div class="lead-card" onclick="openEditModal('${item.id}')">
           <div class="d-flex justify-content-between align-items-center mb-1">
             <span class="fw-bold text-dark">${item.id} ${duplicateWarningIcon}</span>
-            <span class="badge ${bColor}">${item.status || 'New Lead'}</span>
+            <div>
+              ${deliveryBadge}
+              <span class="badge ${bColor}">${item.status || 'New Lead'}</span>
+            </div>
           </div>
           <h6 class="fw-bold text-primary m-0 mb-1">${item.customer}</h6>
           <div class="d-flex justify-content-between extra-small text-muted mb-1">
@@ -1519,9 +1553,14 @@
     return '-';
   }
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  function checkDeliveryStatusCondition() {
+    const st = document.getElementById('editStatus').value;
+    const wrapper = document.getElementById('deliveryStatusWrapperMob');
+    if (st.toLowerCase() === 'won') {
+      wrapper.classList.remove('d-none');
+    } else {
+      wrapper.classList.add('d-none');
+    }
   }
 
   function openEditModal(id) {
@@ -1559,6 +1598,7 @@
     document.getElementById('editPaymentTerms').value = item.paymentTerms || '';
     document.getElementById('editPaymentFollowup').value = item.paymentFollowup || '';
     document.getElementById('editDispatch').value = item.dispatch || '';
+    document.getElementById('editDispatchStatus').value = item.dispatch || 'Pending';
     document.getElementById('editLostReason').value = item.lostReason || '';
     document.getElementById('editRemark').value = item.remark || '';
 
@@ -1574,6 +1614,7 @@
     }
 
     toggleModalLostReason();
+    checkDeliveryStatusCondition();
     fetchAndRenderDynamicCustomerDetails(item.customer, item.salesPerson, item);
 
     const modalElement = document.getElementById('leadDetailsModal');
@@ -1740,6 +1781,8 @@
       saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving Updates...';
     }
 
+    const dispatchVal = (stVal.toLowerCase() === 'won') ? document.getElementById('editDispatchStatus').value : 'Pending';
+
     const payload = {
       id: document.getElementById('editEnqId').value,
       approxValue: document.getElementById('editApproxValue').value,
@@ -1748,7 +1791,7 @@
       leadFollowup: document.getElementById('editLeadFollowup').value,
       paymentTerms: document.getElementById('editPaymentTerms').value,
       paymentFollowup: document.getElementById('editPaymentFollowup').value,
-      dispatch: document.getElementById('editDispatch').value,
+      dispatch: dispatchVal,
       lostReason: lostReasonVal,
       remark: document.getElementById('editRemark').value,
       user: loggedInUser
