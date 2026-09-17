@@ -488,7 +488,7 @@
                 <select id="filterDispatchStatus" onchange="applyDashboardFilters()" class="form-select form-select-sm">
                   <option value="ALL">All Delivery Status</option>
                   <option value="Dispatched">Dispatched</option>
-                  <option value="Pending">Pending</option>
+                  <option value="Intransit">Intransit</option>
                   <option value="Delivered">Delivered</option>
                 </select>
               </div>
@@ -1025,7 +1025,7 @@
             <label class="form-label text-info fw-bold" id="deliveryStatusLabel">Delivery Status</label>
             <select id="editDispatchStatus" class="form-select form-select-sm fw-bold border-info">
               <option value="Dispatched">Dispatched</option>
-              <option value="Pending">Pending</option>
+              <option value="Intransit">Intransit</option>
               <option value="Delivered">Delivered</option>
             </select>
           </div>
@@ -1843,7 +1843,7 @@
           let dispatchVal = item.dispatch || 'Dispatched';
           let dispatchBadgeColor = 'bg-secondary';
           if (dispatchVal === 'Dispatched') dispatchBadgeColor = 'bg-info text-dark';
-          if (dispatchVal === 'Pending') dispatchBadgeColor = 'bg-warning text-dark';
+          if (dispatchVal === 'Intransit') dispatchBadgeColor = 'bg-warning text-dark';
           if (dispatchVal === 'Delivered') dispatchBadgeColor = 'bg-success';
           dispatchHtml = `<span class="badge ${dispatchBadgeColor}">${escapeHtml(dispatchVal)}</span>`;
         }
