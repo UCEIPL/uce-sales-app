@@ -42,18 +42,12 @@
       padding: 12px;
       position: relative;
     }
-    .scroll-buttons-container {
+    .refresh-floating-btn {
       position: fixed;
-      right: 12px;
+      right: 14px;
       bottom: 75px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 999;
-    }
-    .btn-scroll {
-      width: 42px;
-      height: 42px;
+      width: 45px;
+      height: 45px;
       border-radius: 50%;
       background: #0f172a;
       color: #ffffff;
@@ -61,10 +55,16 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       cursor: pointer;
-      font-size: 1rem;
-      opacity: 0.9;
+      font-size: 1.1rem;
+      z-index: 999;
+    }
+    .refresh-floating-btn:active {
+      transform: scale(0.92);
+    }
+    .refresh-floating-btn.spinning i {
+      animation: fa-spin 1s infinite linear;
     }
     .app-bottom-nav {
       flex: 0 0 60px;
@@ -180,9 +180,9 @@
   </div>
 </div>
 
-<div class="scroll-buttons-container">
-  <div class="btn-scroll" onclick="scrollPage('up')"><i class="fa fa-chevron-up"></i></div>
-  <div class="btn-scroll" onclick="scrollPage('down')"><i class="fa fa-chevron-down"></i></div>
+<!-- FLOATING REFRESH BUTTON WITH LOADER -->
+<div class="refresh-floating-btn" id="refreshBtnMob" onclick="triggerManualRefresh()" title="Refresh Data">
+  <i class="fa fa-sync-alt"></i>
 </div>
 
 <div class="app-shell">
@@ -296,7 +296,16 @@
               <option value="Credit">Credit</option>
             </select>
           </div>
-          <div class="col-12">
+          <div class="col-6">
+            <label class="form-label extra-small mb-0">Delivery Status</label>
+            <select id="filterDispatchStatus" onchange="applyFilters()" class="form-select form-select-sm">
+              <option value="ALL">All Delivery</option>
+              <option value="Dispatched">Dispatched</option>
+              <option value="Intransit">Intransit</option>
+              <option value="Delivered">Delivered</option>
+            </select>
+          </div>
+          <div class="col-6">
             <label class="form-label extra-small mb-0">Sales Person</label>
             <select id="filterSalesPerson" onchange="onSalespersonFilterChange()" class="form-select form-select-sm">
               <option value="ALL">All Team Member</option>
@@ -628,11 +637,6 @@
         <h6 class="modal-title fw-bold" id="modalEnqTitle">Lead Details & Update</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      
-      <div style="position: absolute; right: 10px; top: 60px; z-index: 1050; display: flex; flex-direction: column; gap: 5px;">
-        <button class="btn btn-sm btn-dark py-1 px-2 opacity-75" onclick="scrollModal('up')"><i class="fa fa-chevron-up"></i></button>
-        <button class="btn btn-sm btn-dark py-1 px-2 opacity-75" onclick="scrollModal('down')"><i class="fa fa-chevron-down"></i></button>
-      </div>
 
       <div class="modal-body p-3" id="modalScrollBody">
         <input type="hidden" id="editEnqId">
@@ -703,7 +707,7 @@
           </div>
           <div class="col-6">
             <label class="form-label">Status *</label>
-            <select id="editStatus" class="form-select" onchange="toggleModalLostReason()">
+            <select id="editStatus" class="form-select" onchange="toggleModalWonStatusFields()">
               <option value="New Lead">New Lead</option>
               <option value="Hot lead">Hot lead</option>
               <option value="Quoted">Quoted</option>
@@ -738,6 +742,15 @@
             <label class="form-label">Dispatch Info</label>
             <input type="text" id="editDispatch" class="form-control" placeholder="Dispatch details...">
           </div>
+          <!-- Delivery Status Box (Only visible when Won) -->
+          <div class="col-12 d-none" id="wonDeliveryStatusWrapper">
+            <label class="form-label text-info fw-bold">Delivery Status (Won Leads)</label>
+            <select id="editDispatchStatus" class="form-select fw-bold border-info">
+              <option value="Dispatched">Dispatched</option>
+              <option value="Intransit">Intransit</option>
+              <option value="Delivered">Delivered</option>
+            </select>
+          </div>
           <div id="modalLostReasonContainer" class="col-12 d-none">
             <label class="form-label text-danger">Lost Reason Details *</label>
             <input type="text" id="editLostReason" class="form-control border-danger" placeholder="Reason for deal loss...">
@@ -756,19 +769,22 @@
 
 <!-- ACTIVITY MODAL -->
 <div class="modal fade" id="mobDateActivityModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content border-0 rounded-4">
       <div class="modal-header bg-primary text-white py-2">
         <h6 class="modal-title fw-bold extra-small" id="mobModalDateTitle">Log Activity</h6>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-3">
-        <div class="p-2 mb-2 bg-light rounded border">
-          <input class="form-control fw-bold mb-2 extra-small" list="salesPersonsList" id="mobModalActSp" placeholder="Salesperson..." oninput="filterMobCustomerDropdown()">
-          <input class="form-control mb-2 extra-small" list="mobActCustList" id="mobModalActCust" placeholder="Customer Name...">
-          <datalist id="mobActCustList"></datalist>
-
+        <div class="p-2 mb-3 bg-light rounded border">
           <div class="row g-1 mb-2">
+            <div class="col-6">
+              <input class="form-control fw-bold extra-small" list="salesPersonsList" id="mobModalActSp" placeholder="Salesperson..." oninput="filterMobCustomerDropdown()">
+            </div>
+            <div class="col-6">
+              <input class="form-control extra-small" list="mobActCustList" id="mobModalActCust" placeholder="Customer Name...">
+              <datalist id="mobActCustList"></datalist>
+            </div>
             <div class="col-6">
               <select class="form-select extra-small" id="mobModalActType">
                 <option value="Call">📞 Call</option>
@@ -781,13 +797,30 @@
                 <option value="No">Failed / Later</option>
               </select>
             </div>
+            <div class="col-12 mt-1">
+              <input type="text" class="form-control extra-small" id="mobModalActRemark" placeholder="Remarks / discussion outcome...">
+            </div>
           </div>
-          <input type="text" class="form-control mb-2 extra-small" id="mobModalActRemark" placeholder="Remarks / outcome...">
           <button class="btn btn-sm btn-success w-100 fw-bold py-1 extra-small" id="mobSaveActBtn" onclick="submitMobActivityRecord()">Save Activity</button>
         </div>
 
-        <h6 class="fw-bold extra-small text-muted mb-1">Entries Logged</h6>
-        <div id="mobModalEntriesList" class="extra-small"></div>
+        <h6 class="fw-bold extra-small text-dark mb-2"><i class="fa fa-list me-1"></i> Activities Logged for this Day</h6>
+        <div class="table-responsive" style="max-height: 220px;">
+          <table class="table table-sm table-bordered table-striped align-middle extra-small mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Customer</th>
+                <th>Salesperson</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Remark</th>
+              </tr>
+            </thead>
+            <tbody id="mobModalEntriesList">
+              <tr><td colspan="5" class="text-center text-muted py-2">No activity on this date</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -927,16 +960,18 @@
     }
   }
 
-  function scrollPage(direction) {
-    const scroller = document.getElementById('mainScrollContainer');
-    if (!scroller) return;
-    scroller.scrollBy({ top: direction === 'up' ? -250 : 250, behavior: 'smooth' });
-  }
+  async function triggerManualRefresh() {
+    const btn = document.getElementById('refreshBtnMob');
+    if (btn) btn.classList.add('spinning');
+    
+    sessionStorage.removeItem('portal_dashboard_data');
+    sessionStorage.removeItem('portal_master_data');
+    
+    await fetchMasterData();
+    await loadDashboard();
 
-  function scrollModal(direction) {
-    const modalBody = document.getElementById('modalScrollBody');
-    if (!modalBody) return;
-    modalBody.scrollBy({ top: direction === 'up' ? -180 : 180, behavior: 'smooth' });
+    if (btn) btn.classList.remove('spinning');
+    showFloatingNotification("Updated", "Latest data loaded successfully.");
   }
 
   function applyRoleNavigationRestrictions() {
@@ -1135,9 +1170,23 @@
   }
 
   async function fetchMasterData() {
+    const cached = sessionStorage.getItem('portal_master_data');
+    if (cached) {
+      try {
+        onMasterDataLoaded(JSON.parse(cached));
+      } catch (e) {
+        sessionStorage.removeItem('portal_master_data');
+      }
+    }
+
     const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
     if (!data || !data.success) return;
 
+    sessionStorage.setItem('portal_master_data', JSON.stringify(data));
+    onMasterDataLoaded(data);
+  }
+
+  function onMasterDataLoaded(data) {
     rawCustomers = data.customers || [];
     masterSalesPersons = data.salesPersons || [];
     renderBrandCheckboxesMob(data.brands || []);
@@ -1243,9 +1292,23 @@
   }
 
   async function loadDashboard() {
+    const cached = sessionStorage.getItem('portal_dashboard_data');
+    if (cached) {
+      try {
+        renderDashboardData(JSON.parse(cached));
+      } catch (e) {
+        sessionStorage.removeItem('portal_dashboard_data');
+      }
+    }
+
     const data = await callAppsScriptApi("getDashboardData", { user: loggedInUser });
     if (!data || !data.success) return;
 
+    sessionStorage.setItem('portal_dashboard_data', JSON.stringify(data));
+    renderDashboardData(data);
+  }
+
+  function renderDashboardData(data) {
     globalEnquiries = data.enquiries || [];
     globalActivities = data.activities || [];
     globalTasks = data.tasks || [];
@@ -1320,6 +1383,7 @@
     const toDate = document.getElementById('filterToDate').value;
     const st = document.getElementById('filterStatus').value;
     const paySt = document.getElementById('filterPaymentStatus').value;
+    const dispatchSt = document.getElementById('filterDispatchStatus').value;
     const sp = document.getElementById('filterSalesPerson') ? document.getElementById('filterSalesPerson').value : 'ALL';
     const searchVal = document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim().toLowerCase() : '';
 
@@ -1341,6 +1405,7 @@
     if (toDate) filteredList = filteredList.filter(e => e.date && e.date <= toDate);
     if (st !== 'ALL') filteredList = filteredList.filter(e => String(e.status).toLowerCase() === st.toLowerCase());
     if (paySt !== 'ALL') filteredList = filteredList.filter(e => String(e.paymentStatus).toLowerCase() === paySt.toLowerCase());
+    if (dispatchSt !== 'ALL') filteredList = filteredList.filter(e => String(e.dispatch || '').toLowerCase() === dispatchSt.toLowerCase());
     if (sp !== 'ALL' && sp !== '') filteredList = filteredList.filter(e => String(e.salesPerson || '').toLowerCase() === sp.toLowerCase());
 
     currentPage = 1;
@@ -1370,13 +1435,27 @@
 
       let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${item.leadFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
       let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${item.paymentFollowup}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
+      
+      let deliveryBadge = '';
+      if (String(item.status).toLowerCase() === 'won') {
+        let dVal = item.dispatch || 'Pending';
+        let dColor = 'bg-secondary';
+        if (dVal === 'Dispatched') dColor = 'bg-info text-dark';
+        if (dVal === 'Intransit') dColor = 'bg-warning text-dark';
+        if (dVal === 'Delivered') dColor = 'bg-success';
+        deliveryBadge = `<span class="badge ${dColor} ms-1">Delivery: ${escapeHtml(dVal)}</span>`;
+      }
+
       let duplicateWarningIcon = item.isDuplicate ? `<span class="badge bg-warning text-dark ms-1">⚠️ Duplicate</span>` : '';
 
       html += `
         <div class="lead-card" onclick="openEditModal('${item.id}')">
           <div class="d-flex justify-content-between align-items-center mb-1">
             <span class="fw-bold text-dark">${item.id} ${duplicateWarningIcon}</span>
-            <span class="badge ${bColor}">${item.status || 'New Lead'}</span>
+            <div>
+              ${deliveryBadge}
+              <span class="badge ${bColor}">${item.status || 'New Lead'}</span>
+            </div>
           </div>
           <h6 class="fw-bold text-primary m-0 mb-1">${item.customer}</h6>
           <div class="d-flex justify-content-between extra-small text-muted mb-1">
@@ -1522,6 +1601,23 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
   }
 
+  function toggleModalWonStatusFields() {
+    const st = document.getElementById('editStatus').value;
+    const container = document.getElementById('modalLostReasonContainer');
+    const wonDeliveryWrapper = document.getElementById('wonDeliveryStatusWrapper');
+
+    if (st === 'Lost') {
+      container.classList.remove('d-none');
+      wonDeliveryWrapper.classList.add('d-none');
+    } else if (st === 'Won') {
+      container.classList.add('d-none');
+      wonDeliveryWrapper.classList.remove('d-none');
+    } else {
+      container.classList.add('d-none');
+      wonDeliveryWrapper.classList.add('d-none');
+    }
+  }
+
   function openEditModal(id) {
     const item = globalEnquiries.find(e => String(e.id) === String(id));
     if (!item) return;
@@ -1557,6 +1653,7 @@
     document.getElementById('editPaymentTerms').value = item.paymentTerms || '';
     document.getElementById('editPaymentFollowup').value = item.paymentFollowup || '';
     document.getElementById('editDispatch').value = item.dispatch || '';
+    document.getElementById('editDispatchStatus').value = item.dispatch || 'Pending';
     document.getElementById('editLostReason').value = item.lostReason || '';
     document.getElementById('editRemark').value = item.remark || '';
 
@@ -1571,7 +1668,7 @@
       saveBtn.innerText = isLocked ? "🔒 Locked (Max 2 Edits Reached)" : "SAVE ALL UPDATES";
     }
 
-    toggleModalLostReason();
+    toggleModalWonStatusFields();
     fetchAndRenderDynamicCustomerDetails(item.customer, item.salesPerson, item);
 
     const modalElement = document.getElementById('leadDetailsModal');
@@ -1639,6 +1736,7 @@
     const res = await callAppsScriptApi("quickSnoozeEnquiry", { id: activeId, type: snoozeType, newDate: snoozeDate, user: loggedInUser ? loggedInUser.salesPerson : 'Admin' });
     if (res && res.success) {
       showFloatingNotification("Snooze Saved", res.message);
+      sessionStorage.removeItem('portal_dashboard_data');
       const modalEl = document.getElementById('leadDetailsModal');
       if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboard();
@@ -1656,6 +1754,7 @@
     const res = await callAppsScriptApi("transferLeadOwner", { id: activeId, targetSp: targetSp, user: loggedInUser ? loggedInUser.salesPerson : 'Admin' });
     if (res && res.success) {
       showFloatingNotification("Lead Transferred", res.message);
+      sessionStorage.removeItem('portal_dashboard_data');
       const modalEl = document.getElementById('leadDetailsModal');
       if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboard();
@@ -1716,13 +1815,6 @@
     }
   }
 
-  function toggleModalLostReason() {
-    const st = document.getElementById('editStatus').value;
-    const container = document.getElementById('modalLostReasonContainer');
-    if (st === 'Lost') container.classList.remove('d-none');
-    else container.classList.add('d-none');
-  }
-
   async function saveLeadFullUpdate() {
     const stVal = document.getElementById('editStatus').value;
     const lostReasonVal = document.getElementById('editLostReason').value;
@@ -1738,6 +1830,8 @@
       saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving Updates...';
     }
 
+    const dispatchVal = (stVal === 'Won') ? document.getElementById('editDispatchStatus').value : document.getElementById('editDispatch').value;
+
     const payload = {
       id: document.getElementById('editEnqId').value,
       approxValue: document.getElementById('editApproxValue').value,
@@ -1746,12 +1840,13 @@
       leadFollowup: document.getElementById('editLeadFollowup').value,
       paymentTerms: document.getElementById('editPaymentTerms').value,
       paymentFollowup: document.getElementById('editPaymentFollowup').value,
-      dispatch: document.getElementById('editDispatch').value,
+      dispatch: dispatchVal,
       lostReason: lostReasonVal,
       remark: document.getElementById('editRemark').value,
       user: loggedInUser
     };
 
+    sessionStorage.removeItem('portal_dashboard_data');
     const res = await callAppsScriptApi("updateEnquiryFull", payload);
     
     if (saveBtn) {
@@ -1761,6 +1856,7 @@
 
     if (res && res.success) {
       showFloatingNotification("Updated Successfully", `Enquiry ${payload.id} updated to ${payload.status}`);
+      sessionStorage.removeItem('portal_dashboard_data');
       const modalEl = document.getElementById('leadDetailsModal');
       if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
       loadDashboard();
@@ -1835,15 +1931,18 @@
     if (!container) return;
 
     if (acts.length === 0) {
-      container.innerHTML = '<div class="text-muted text-center py-2">No activity on this date</div>';
+      container.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-2">No activity on this date</td></tr>';
       return;
     }
 
     container.innerHTML = acts.map(a => `
-      <div class="p-1 border-bottom d-flex justify-content-between align-items-center">
-        <div><b>${escapeHtml(a.customer)}</b><br><span class="text-muted">${escapeHtml(a.remark || '-')}</span></div>
-        <div><span class="badge ${a.type === 'Call' ? 'bg-info text-dark' : 'bg-success'}">${escapeHtml(a.type)}</span></div>
-      </div>
+      <tr>
+        <td><b>${escapeHtml(a.customer)}</b></td>
+        <td>${escapeHtml(a.salesPerson)}</td>
+        <td><span class="badge ${a.type === 'Call' ? 'bg-info text-dark' : 'bg-success'}">${escapeHtml(a.type)}</span></td>
+        <td>${a.status === 'Yes' ? 'Connected' : 'Failed'}</td>
+        <td>${escapeHtml(a.remark || '-')}</td>
+      </tr>
     `).join('');
   }
 
@@ -1874,12 +1973,14 @@
       longitude: userGeoCoords ? userGeoCoords.longitude : ''
     };
 
+    sessionStorage.removeItem('portal_dashboard_data');
     const res = await callAppsScriptApi("saveActivity", activityData);
     saveBtn.disabled = false;
     saveBtn.innerText = 'Save Activity';
 
     if (res && res.success) {
       showFloatingNotification("Activity Logged", `${type} recorded for ${cust}`);
+      sessionStorage.removeItem('portal_dashboard_data');
       document.getElementById('mobModalActCust').value = '';
       document.getElementById('mobModalActRemark').value = '';
       loadDashboard();
@@ -2001,11 +2102,13 @@
       longitude: userGeoCoords ? userGeoCoords.longitude : ''
     };
 
+    sessionStorage.removeItem('portal_dashboard_data');
     const res = await callAppsScriptApi("saveEnquiry", formData);
     saveBtn.disabled = false; saveBtn.innerText = "SAVE";
 
     if (res && res.success) {
       showFloatingNotification(res.isDuplicate ? "Duplicate Warning" : "Lead Created", res.message);
+      sessionStorage.removeItem('portal_dashboard_data');
       resetMobileEnquiryForm();
       switchTab('leads');
       loadDashboard();
@@ -2097,6 +2200,7 @@
 
   function logout() {
     localStorage.clear();
+    sessionStorage.clear();
     location.reload();
   }
 
