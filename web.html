@@ -1428,9 +1428,21 @@
   }
 
   async function fetchMasterData() {
-    const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
-    if (data) onMasterDataLoaded(data);
+  const cached = sessionStorage.getItem('portal_master_data');
+  if (cached) {
+    try {
+      onMasterDataLoaded(JSON.parse(cached));
+    } catch (e) {
+      sessionStorage.removeItem('portal_master_data');
+    }
   }
+
+  const data = await callAppsScriptApi("getMasterData", { user: loggedInUser });
+  if (data && data.success) {
+    sessionStorage.setItem('portal_master_data', JSON.stringify(data));
+    onMasterDataLoaded(data);
+  }
+}
 
   function onMasterDataLoaded(data) {
     if (!data) return;
@@ -1657,11 +1669,24 @@
     }
   }
 
-  async function loadDashboardData() {
-    if (!loggedInUser) return;
-    const data = await callAppsScriptApi("getDashboardData", { user: loggedInUser });
-    if (data) renderDashboardData(data);
+ async function loadDashboardData() {
+  if (!loggedInUser) return;
+  
+  const cached = sessionStorage.getItem('portal_dashboard_data');
+  if (cached) {
+    try {
+      renderDashboardData(JSON.parse(cached));
+    } catch (e) {
+      sessionStorage.removeItem('portal_dashboard_data');
+    }
   }
+
+  const data = await callAppsScriptApi("getDashboardData", { user: loggedInUser });
+  if (data && data.success) {
+    sessionStorage.setItem('portal_dashboard_data', JSON.stringify(data));
+    renderDashboardData(data);
+  }
+}
 
   function renderDashboardData(data) {
     if (!data) return;
