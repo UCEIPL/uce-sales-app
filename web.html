@@ -531,7 +531,7 @@
                 </tr>
               </thead>
               <tbody id="enquiryTableBody">
-                <tr><td colspan="10" class="text-center text-muted py-3">Loading data...</td></tr>
+                <tr><td colspan="11" class="text-center text-muted py-3">Loading data...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1829,8 +1829,6 @@
 
         let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${escapeHtml(item.leadFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
         let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${escapeHtml(item.paymentFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
-        let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${escapeHtml(item.paymentFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
-        let dispatchVal = item.dispatch || 'Dispatched';
         let dispatchBadgeColor = 'bg-secondary';
         if (dispatchVal === 'Dispatched') dispatchBadgeColor = 'bg-info text-dark';
         if (dispatchVal === 'Intransit') dispatchBadgeColor = 'bg-warning text-dark';
@@ -1856,7 +1854,7 @@
       });
       enqTbody.innerHTML = rows;
     } else {
-      enqTbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">No Enquiries Found</td></tr>';
+      enqTbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">No Enquiries Found</td></tr>';
     }
   }
 
