@@ -525,6 +525,7 @@
                   <th>Lead Followup</th>
                   <th>Payment Status</th>
                   <th>Payment Due Date</th>
+                  <th>Delivery Status</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -1034,6 +1035,14 @@
           <div class="col-md-6">
             <label class="form-label">Dispatch Info</label>
             <input type="text" id="editDispatch" class="form-control form-control-sm">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label text-info fw-bold">Delivery Status</label>
+            <select id="editDispatchStatus" class="form-select form-select-sm fw-bold border-info">
+              <option value="Dispatched">Dispatched</option>
+              <option value="Intransit">Intransit</option>
+              <option value="Delivered">Delivered</option>
+            </select>
           </div>
           <div id="modalLostReasonContainer" class="col-12 d-none">
             <label class="form-label text-danger">Lost Reason Details *</label>
@@ -1820,6 +1829,13 @@
 
         let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${escapeHtml(item.leadFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
         let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${escapeHtml(item.paymentFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
+        let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${escapeHtml(item.paymentFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
+        let dispatchVal = item.dispatch || 'Dispatched';
+        let dispatchBadgeColor = 'bg-secondary';
+        if (dispatchVal === 'Dispatched') dispatchBadgeColor = 'bg-info text-dark';
+        if (dispatchVal === 'Intransit') dispatchBadgeColor = 'bg-warning text-dark';
+        if (dispatchVal === 'Delivered') dispatchBadgeColor = 'bg-success';
+        let dispatchHtml = `<span class="badge ${dispatchBadgeColor}">${escapeHtml(dispatchVal)}</span>`;
         let duplicateWarningIcon = item.isDuplicate ? `<span class="badge bg-warning text-dark ms-1" title="${escapeHtml(item.isDuplicate)}">⚠️ Duplicate</span>` : '';
 
         rows += `
@@ -1832,6 +1848,7 @@
             <td>${leadFup}</td>
             <td><span class="badge ${payBadgeColor}">${escapeHtml(item.paymentStatus || 'Pending')}</span></td>
             <td>${payFup}</td>
+            <td>${dispatchHtml}</td> <!-- Yahan naya column ka data aagya -->
             <td><span class="badge ${badgeColor}">${escapeHtml(item.status || 'New Lead')}</span></td>
             <td><button type="button" class="btn btn-sm btn-primary py-0 px-2" onclick="openEditModal('${escapeHtml(item.id)}')">👁️ Details</button></td>
           </tr>
@@ -1916,6 +1933,7 @@
     document.getElementById('mMode').innerText = item.mode || '-';
     document.getElementById('mSalesPerson').innerText = item.salesPerson || '-';
     document.getElementById('mDescription').innerText = item.description || '-';
+    document.getElementById('editDispatchStatus').value = item.dispatch || 'Dispatched';
 
     const masterCustomer = findMasterCustomer(item.customer, item.salesPerson);
     document.getElementById('mCustContact').innerText = masterCustomer ? getCustomerField(masterCustomer, ['contactPerson', 'contact']) : '-';
@@ -2074,7 +2092,7 @@
       leadFollowup: leadFupVal,
       paymentTerms: payTermsVal,
       paymentFollowup: payFupVal,
-      dispatch: dispatchVal,
+      dispatch: document.getElementById('editDispatchStatus').value,
       lostReason: lostReasonVal,
       remark: remarkVal,
       user: loggedInUser
