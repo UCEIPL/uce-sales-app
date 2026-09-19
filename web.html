@@ -1423,61 +1423,85 @@
   }
 
   function onMasterDataLoaded(data) {
-    if (!data) return;
-    rawCustomers = data.customers || [];
-    masterSalesPersons = data.salesPersons || [];
-    renderBrandCheckboxes(data.brands || []);
+  if (!data) return;
+  rawCustomers = data.customers || [];
+  masterSalesPersons = data.salesPersons || [];
+  renderBrandCheckboxes(data.brands || []);
 
-    let spOptionsHtml = '', filterOpts = '<option value="ALL">All Team Member</option>';
-    let adminTargetOpts = '', exportSpOpts = '<option value="ALL">All Team Members</option>';
+  const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
+  const isAdmin = role.indexOf('admin') > -1;
+  const isManager = role.indexOf('manager') > -1;
+  const isMgmt = isAdmin || isManager;
 
-    masterSalesPersons.forEach(sp => {
-      spOptionsHtml += `<option value="${sp}">`;
-      filterOpts += `<option value="${sp}">${sp}</option>`;
-      adminTargetOpts += `<option value="${sp}">${sp}</option>`;
-      exportSpOpts += `<option value="${sp}">${sp}</option>`;
-    });
+  let spOptionsHtml = '';
+  let filterOpts = '';
+  let adminTargetOpts = '';
+  let exportSpOpts = '';
 
-    document.getElementById('salesPersonsList').innerHTML = spOptionsHtml;
-    document.getElementById('filterSalesPerson').innerHTML = filterOpts;
-    document.getElementById('actFilterSalesPerson').innerHTML = filterOpts;
-    if (document.getElementById('todoFilterSalesPerson')) document.getElementById('todoFilterSalesPerson').innerHTML = filterOpts;
-    if (document.getElementById('adminTargetSp')) document.getElementById('adminTargetSp').innerHTML = adminTargetOpts;
-    document.getElementById('exportSpSelect').innerHTML = exportSpOpts;
-
-    const role = loggedInUser && loggedInUser.role ? loggedInUser.role.toLowerCase() : '';
-    const isAdmin = role.indexOf('admin') > -1;
-    const isManager = role.indexOf('manager') > -1;
-    const isMgmt = isAdmin || isManager;
-
-    const adminTargetCard = document.getElementById('adminTargetCard');
-    if (adminTargetCard) {
-      if (isAdmin) adminTargetCard.classList.remove('d-none');
-      else adminTargetCard.classList.add('d-none');
-    }
-
-    const spInputEl = document.getElementById('salesPersonInput');
-    const transferWrapper = document.getElementById('transferActionWrapper');
-
-    if (!isMgmt) {
-      if (spInputEl) { spInputEl.value = loggedInUser ? loggedInUser.salesPerson : ''; spInputEl.readOnly = true; }
-      if (transferWrapper) transferWrapper.classList.add('d-none');
-    } else {
-      if (transferWrapper) transferWrapper.classList.remove('d-none');
-      let tOpts = '<option value="">Transfer Lead To...</option>';
-      masterSalesPersons.forEach(sp => { tOpts += `<option value="${sp}">${sp}</option>`; });
-      document.getElementById('modalTransferSp').innerHTML = tOpts;
-    }
-
-    if (loggedInUser && loggedInUser.salesPerson && spInputEl && !spInputEl.value) {
-      spInputEl.value = loggedInUser.salesPerson;
-    }
-
-    filterCustomersBySalesPerson();
-    filterCustomerDropdownForActivity();
-    loadDashboardData();
-    setTimeout(loadSidebarTargetInfo, 600);
+  // Sirf Admin ya Manager ke liye 'All Team Member' ka option add hoga
+  if (isMgmt) {
+    filterOpts += '<option value="ALL">All Team Member</option>';
+    exportSpOpts += '<option value="ALL">All Team Members</option>';
   }
+
+  masterSalesPersons.forEach(sp => {
+    spOptionsHtml += `<option value="${sp}">`;
+    filterOpts += `<option value="${sp}">${sp}</option>`;
+    adminTargetOpts += `<option value="${sp}">${sp}</option>`;
+    exportSpOpts += `<option value="${sp}">${sp}</option>`;
+  });
+
+  document.getElementById('salesPersonsList').innerHTML = spOptionsHtml;
+  
+  const filterSalesPersonEl = document.getElementById('filterSalesPerson');
+  filterSalesPersonEl.innerHTML = filterOpts;
+
+  const exportSpSelectEl = document.getElementById('exportSpSelect');
+  exportSpSelectEl.innerHTML = exportSpOpts;
+
+  document.getElementById('actFilterSalesPerson').innerHTML = filterOpts;
+  if (document.getElementById('todoFilterSalesPerson')) document.getElementById('todoFilterSalesPerson').innerHTML = filterOpts;
+  if (document.getElementById('adminTargetSp')) document.getElementById('adminTargetSp').innerHTML = adminTargetOpts;
+
+  const adminTargetCard = document.getElementById('adminTargetCard');
+  if (adminTargetCard) {
+    if (isAdmin) adminTargetCard.classList.remove('d-none');
+    else adminTargetCard.classList.add('d-none');
+  }
+
+  const spInputEl = document.getElementById('salesPersonInput');
+  const transferWrapper = document.getElementById('transferActionWrapper');
+
+  if (!isMgmt) {
+    if (spInputEl) { 
+      spInputEl.value = loggedInUser ? loggedInUser.salesPerson : ''; 
+      spInputEl.readOnly = true; 
+    }
+    if (filterSalesPersonEl) {
+      filterSalesPersonEl.value = loggedInUser ? loggedInUser.salesPerson : '';
+      filterSalesPersonEl.disabled = true;
+    }
+    if (exportSpSelectEl) {
+      exportSpSelectEl.value = loggedInUser ? loggedInUser.salesPerson : '';
+      exportSpSelectEl.disabled = true;
+    }
+    if (transferWrapper) transferWrapper.classList.add('d-none');
+  } else {
+    if (transferWrapper) transferWrapper.classList.remove('d-none');
+    let tOpts = '<option value="">Transfer Lead To...</option>';
+    masterSalesPersons.forEach(sp => { tOpts += `<option value="${sp}">${sp}</option>`; });
+    document.getElementById('modalTransferSp').innerHTML = tOpts;
+  }
+
+  if (loggedInUser && loggedInUser.salesPerson && spInputEl && !spInputEl.value) {
+    spInputEl.value = loggedInUser.salesPerson;
+  }
+
+  filterCustomersBySalesPerson();
+  filterCustomerDropdownForActivity();
+  loadDashboardData();
+  setTimeout(loadSidebarTargetInfo, 600);
+}
 
   async function submitAdminTargetUpdate() {
     const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
@@ -1583,7 +1607,7 @@
   async function handleEnquirySubmit(e) {
     e.preventDefault();
     const custName = document.getElementById('customerInput').value;
-    const saveBtn = document.getElementById('saveEnquiryBtn');
+    const saveBtn = document.getElementById('saveEnquiryBtn'); 
     saveBtn.disabled = true; saveBtn.innerText = "Saving to Google Sheet...";
 
     const brandValue = getSelectedBrandsList();
@@ -1639,6 +1663,10 @@
     saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
 
     const res = await callAppsScriptApi("saveEnquiry", formData);
+    // 👇 API response aane ke baad button ko wapas enable karna zaroori hai
+  saveBtn.disabled = false; 
+  saveBtn.innerText = "Save Enquiry";
+    
     if (res && res.success) {
       showFloatingNotification("Success", res.message);
       sessionStorage.removeItem('portal_dashboard_data');
@@ -2210,6 +2238,11 @@
   }
 
   async function submitModalActivityRecord() {
+    const actBtn = document.getElementById('saveActivityBtn');
+    if (actBtn.disabled) return;
+    actBtn.disabled = true;
+    actBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving...';
+
     const payload = {
       date: selectedActivityDateStr,
       salesPerson: document.getElementById('modalActSalesPerson').value.trim() || loggedInUser.salesPerson,
@@ -2218,12 +2251,19 @@
       status: document.querySelector('input[name="modalInteractionStatus"]:checked').value,
       remark: document.getElementById('modalActRemark').value.trim()
     };
-    if (!payload.customer) return alert("Customer required");
+    if (!payload.customer) {
+      alert("Customer required");
+      actBtn.disabled = false;
+      actBtn.innerHTML = '<i class="fa fa-save me-1"></i> Save Entry';
+      return;
+    }
 
     const res = await callAppsScriptApi("saveActivity", payload);
+    actBtn.disabled = false;
+    actBtn.innerHTML = '<i class="fa fa-save me-1"></i> Save Entry';
+
     if (res && res.success) {
       showFloatingNotification("Saved", res.message);
-      sessionStorage.removeItem('portal_dashboard_data');
       document.getElementById('modalActCustomer').value = '';
       document.getElementById('modalActRemark').value = '';
       loadDashboardData();
@@ -2411,7 +2451,9 @@
     if (!title) { alert("Please enter task description!"); return; }
 
     const btn = document.getElementById('modalTodoSaveBtn');
-    if (btn) { btn.disabled = true; btn.innerText = 'Adding...'; }
+    if (btn.disabled) return;
+    btn.disabled = true; 
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Adding...';
 
     const payload = {
       salesPerson: sp || (loggedInUser ? loggedInUser.salesPerson : ''),
@@ -2421,11 +2463,11 @@
     };
 
     const res = await callAppsScriptApi("saveToDoTask", payload);
-    if (btn) { btn.disabled = false; btn.innerText = 'Add Task'; }
+    btn.disabled = false; 
+    btn.innerHTML = '<i class="fa fa-save me-1"></i> Add Task';
 
     if (res && res.success) {
       showFloatingNotification("Task Added", `Task scheduled for ${selectedTodoDateStr}`);
-      sessionStorage.removeItem('portal_dashboard_data');
       document.getElementById('modalTodoTitle').value = '';
       await loadDashboardData();
       setTimeout(renderModalTodoList, 400);
