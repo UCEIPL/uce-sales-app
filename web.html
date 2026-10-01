@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UCE Sales Portal (Vercel Edition)</title>
+  <title>UCE Sales Portal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -141,7 +141,6 @@
         <li class="nav-item" id="navItemLost"><a class="nav-link" id="tab-lost-btn" onclick="showTab('lost')">❌ Lost Enquiries</a></li>
         <li class="nav-item" id="navItemActivity"><a class="nav-link" id="tab-activity-btn" onclick="showTab('activity')">📞 Calls & Visits</a></li>
       </ul>
-
       <div class="p-2 mb-2 bg-dark rounded border border-secondary text-white small shadow-sm" id="sidebarTargetWidget">
         <div class="fw-bold text-info mb-2 d-flex justify-content-between align-items-center">
           <span><i class="fa fa-bullseye me-1"></i> Targets & Goals</span>
@@ -219,6 +218,7 @@
         <button type="button" class="btn-close py-2" onclick="hideAlert()"></button>
       </div>
 
+      <!-- MODULE: DASHBOARD -->
       <div id="enquiryModule">
         <div id="reminderBanner" class="card p-3 mb-4 border-start border-warning border-4 bg-light d-none">
           <div class="d-flex justify-content-between align-items-center">
@@ -265,165 +265,6 @@
             <div class="col-md-3 d-flex align-items-end">
               <button type="button" class="btn btn-sm btn-success w-100 fw-bold" id="adminTargetBtn" onclick="submitAdminTargetUpdate()">Update Target</button>
             </div>
-          </div>
-        </div>
-
-        <div class="card p-4 mb-4" id="createEnquiryCardWrapper">
-          <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 text-primary fw-bold"><i class="fa fa-plus-circle me-1"></i> Create New Enquiry</h5>
-            <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="toggleEnquiryFormBtn" onclick="toggleEnquiryForm()">
-              <i class="fa fa-eye-slash me-1"></i> Hide Form
-            </button>
-          </div>
-          
-          <div id="enquiryFormCollapseWrapper" class="mt-3">
-            <hr class="mb-3 mt-0">
-
-            <form id="enquiryForm">
-              <div class="row g-2 mb-3 p-2 bg-light rounded border">
-                <div class="col-12 col-md-4">
-                  <label class="form-label">1. Sales Person *</label>
-                  <input class="form-control form-control-sm fw-bold" list="salesPersonsList" id="salesPersonInput" placeholder="Select or type salesperson..." required oninput="filterCustomersBySalesPerson()">
-                  <datalist id="salesPersonsList"></datalist>
-                </div>
-
-                <div class="col-12 col-md-8">
-                  <label class="form-label">2. Select Customer *</label>
-                  <input class="form-control form-control-sm" list="customersList" id="customerInput" placeholder="Select or type customer..." required onchange="autoFillCustomerInfo()">
-                  <datalist id="customersList"></datalist>
-                </div>
-
-                <div class="col-6 col-md-3">
-                  <label class="form-label">City</label>
-                  <input type="text" class="form-control form-control-sm" id="custCity" placeholder="City">
-                </div>
-                <div class="col-6 col-md-3">
-                  <label class="form-label small fw-bold">Complete Address</label>
-                  <input type="text" class="form-control form-control-sm" id="custModalAddress" placeholder="Full address...">
-                </div>
-                <div class="col-6 col-md-3">
-                  <label class="form-label">Contact Person</label>
-                  <input type="text" class="form-control form-control-sm" id="custContactPerson" placeholder="Name">
-                </div>
-                <div class="col-6 col-md-3">
-                  <label class="form-label">Phone</label>
-                  <input type="text" class="form-control form-control-sm" id="custMobile" placeholder="Phone">
-                </div>
-                <div class="col-6 col-md-3">
-                  <label class="form-label">Email</label>
-                  <input type="email" class="form-control form-control-sm" id="custEmail" placeholder="Email">
-                </div>
-              </div>
-
-              <div class="row g-2">
-                <div class="col-12 col-md-6">
-                  <label class="form-label">Description *</label>
-                  <textarea class="form-control form-control-sm" id="description" rows="1" required placeholder="Requirement details..." style="height: 31px; resize: none;"></textarea>
-                </div>
-
-                <div class="col-12 col-md-6 position-relative">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <label class="form-label m-0">Select Brands (Multiple Allowed) *</label>
-                    <button type="button" class="btn btn-xs btn-link text-primary p-0 text-decoration-none fw-bold small" onclick="toggleAddNewBrandInput()">+ Add New Brand</button>
-                  </div>
-                  
-                  <div class="dropdown">
-                    <button class="btn btn-outline-secondary btn-sm w-100 text-start d-flex justify-content-between align-items-center bg-white" type="button" id="brandDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                      <span id="brandDropdownLabel" class="text-truncate">Select Brands...</span>
-                      <i class="fa fa-chevron-down text-muted" style="font-size: 0.7rem;"></i>
-                    </button>
-                    <div class="dropdown-menu w-100 p-2 brand-dropdown-menu" id="brandCheckboxContainer">
-                      <div class="text-muted extra-small py-1">Loading brands...</div>
-                    </div>
-                  </div>
-
-                  <div class="input-group input-group-sm mt-1 d-none" id="newBrandRow">
-                    <input type="text" class="form-control" id="newCustomBrandInput" placeholder="Enter new brand name...">
-                    <button class="btn btn-primary fw-bold" type="button" onclick="submitNewBrandPermanently()">Save Brand</button>
-                  </div>
-                </div>
-
-                <div class="col-6 col-md-3">
-                  <label class="form-label">Approx Value (₹) *</label>
-                  <input type="number" class="form-control form-control-sm fw-bold text-success" id="approxValue" placeholder="0.00" required>
-                </div>
-
-                <div class="col-6 col-md-3">
-                  <label class="form-label">Mode</label>
-                  <select class="form-select form-select-sm" id="mode">
-                    <option value="Email">Email</option>
-                    <option value="Phone Call">Phone Call</option>
-                    <option value="Visit">Direct Visit</option>
-                    <option value="WhatsApp">WhatsApp</option>
-                    <option value="Website">Website</option>
-                    <option value="IndiaMart">IndiaMart</option>
-                    <option value="Digital Marketing">Digital Marketing</option>
-                    <option value="Tradeindia">Tradeindia</option>
-                    <option value="JustDial">JustDial</option>
-                    <option value="Indmall">Indmall</option>
-                  </select>
-                </div>
-
-                <div class="col-6 col-md-3">
-                  <label class="form-label">Enquiry Date *</label>
-                  <input type="date" class="form-control form-control-sm" id="enquiryDate" required onchange="calculatePaymentFollowupDate()">
-                </div>
-
-                <div class="col-6 col-md-3">
-                  <label class="form-label">Expected Close Date</label>
-                  <input type="date" class="form-control form-control-sm" id="expectedClose">
-                </div>
-
-                <div class="col-6 col-md-3">
-                  <label class="form-label text-primary">Lead Follow-Up Date</label>
-                  <input type="date" class="form-control form-control-sm fw-bold border-primary" id="leadFollowup">
-                </div>
-
-                <div class="col-6 col-md-3">
-                  <label class="form-label">Payment Status</label>
-                  <select class="form-select form-select-sm" id="paymentStatus">
-                    <option value="Pending" selected>Pending</option>
-                    <option value="Advance Received">Advance Received</option>
-                    <option value="Fully Paid">Fully Paid</option>
-                    <option value="Partial">Partial Payment</option>
-                    <option value="Credit">Credit</option>
-                  </select>
-                </div>
-
-                <div class="col-6 col-md-3">
-                  <label class="form-label text-dark fw-bold">Payment Terms *</label>
-                  <select class="form-select form-select-sm fw-bold border-primary" id="paymentTermsSelect" onchange="calculatePaymentFollowupDate()">
-                    <option value="0" selected>100% Advance (0 Days)</option>
-                    <option value="7">7 Days Credit</option>
-                    <option value="15">15 Days Credit</option>
-                    <option value="30">30 Days Credit</option>
-                    <option value="45">45 Days Credit</option>
-                    <option value="60">60 Days Credit</option>
-                    <option value="90">90 Days Credit</option>
-                  </select>
-                </div>
-
-                <div class="col-6 col-md-3">
-                  <label class="form-label text-success fw-bold">Payment Follow-Up Date</label>
-                  <input type="date" class="form-control form-control-sm fw-bold border-success bg-light" id="paymentFollowupDate">
-                </div>
-
-                <div class="col-12 col-md-6">
-                  <label class="form-label">Dispatch Info</label>
-                  <input type="text" class="form-control form-control-sm" id="dispatch" placeholder="Dispatch details...">
-                </div>
-
-                <div class="col-12 col-md-6">
-                  <label class="form-label">Internal Remark / Notes</label>
-                  <input type="text" class="form-control form-control-sm" id="remark" placeholder="Any internal notes...">
-                </div>
-              </div>
-
-              <div class="mt-3 text-end d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-outline-secondary px-4 fw-bold" onclick="resetEnquiryForm()"><i class="fa fa-undo me-1"></i> Reset Form</button>
-                <button type="submit" class="btn btn-primary px-5 fw-bold" id="saveEnquiryBtn"><i class="fa fa-save me-1"></i> Save Enquiry</button>
-              </div>
-            </form>
           </div>
         </div>
 
@@ -484,7 +325,6 @@
                   <option value="Credit">Credit</option>
                 </select>
               </div>
-              <!-- Delivery Status Filter -->
               <div class="col-md-3">
                 <label class="form-label mb-1">Delivery Status</label>
                 <select id="filterDispatchStatus" onchange="applyDashboardFilters()" class="form-select form-select-sm">
@@ -540,6 +380,162 @@
         </div>
       </div>
 
+      <!-- MODULE: ADD LEAD (STANDALONE PAGE ID FIXED) -->
+      <div id="add-leadModule" class="d-none">
+        <div class="card p-4 mb-4" id="createEnquiryCardWrapper">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0 text-primary fw-bold"><i class="fa fa-plus-circle me-1"></i> Create New Enquiry / Add Lead</h5>
+            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" onclick="showTab('enquiry')">
+              <i class="fa fa-arrow-left me-1"></i> Back to Dashboard
+            </button>
+          </div>
+          
+          <hr class="mb-3 mt-0">
+
+          <form id="enquiryForm">
+            <div class="row g-2 mb-3 p-2 bg-light rounded border">
+              <div class="col-12 col-md-4">
+                <label class="form-label">1. Sales Person *</label>
+                <input class="form-control form-control-sm fw-bold" list="salesPersonsList" id="salesPersonInput" placeholder="Select or type salesperson..." required oninput="filterCustomersBySalesPerson()">
+                <datalist id="salesPersonsList"></datalist>
+              </div>
+
+              <div class="col-12 col-md-8">
+                <label class="form-label">2. Select Customer *</label>
+                <input class="form-control form-control-sm" list="customersList" id="customerInput" placeholder="Select or type customer..." required onchange="autoFillCustomerInfo()">
+                <datalist id="customersList"></datalist>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label class="form-label">City</label>
+                <input type="text" class="form-control form-control-sm" id="custCity" placeholder="City">
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label small fw-bold">Complete Address</label>
+                <input type="text" class="form-control form-control-sm" id="custModalAddress" placeholder="Full address...">
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label">Contact Person</label>
+                <input type="text" class="form-control form-control-sm" id="custContactPerson" placeholder="Name">
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label">Phone</label>
+                <input type="text" class="form-control form-control-sm" id="custMobile" placeholder="Phone">
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control form-control-sm" id="custEmail" placeholder="Email">
+              </div>
+            </div>
+
+            <div class="row g-2">
+              <div class="col-12 col-md-6">
+                <label class="form-label">Description *</label>
+                <textarea class="form-control form-control-sm" id="description" rows="2" required placeholder="Requirement details..."></textarea>
+              </div>
+
+              <div class="col-12 col-md-6 position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label m-0">Select Brands (Multiple Allowed) *</label>
+                  <button type="button" class="btn btn-xs btn-link text-primary p-0 text-decoration-none fw-bold small" onclick="toggleAddNewBrandInput()">+ Add New Brand</button>
+                </div>
+                
+                <div class="dropdown">
+                  <button class="btn btn-outline-secondary btn-sm w-100 text-start d-flex justify-content-between align-items-center bg-white" type="button" id="brandDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                    <span id="brandDropdownLabel" class="text-truncate">Select Brands...</span>
+                    <i class="fa fa-chevron-down text-muted" style="font-size: 0.7rem;"></i>
+                  </button>
+                  <div class="dropdown-menu w-100 p-2 brand-dropdown-menu" id="brandCheckboxContainer">
+                    <div class="text-muted extra-small py-1">Loading brands...</div>
+                  </div>
+                </div>
+
+                <div class="input-group input-group-sm mt-1 d-none" id="newBrandRow">
+                  <input type="text" class="form-control" id="newCustomBrandInput" placeholder="Enter new brand name...">
+                  <button class="btn btn-primary fw-bold" type="button" onclick="submitNewBrandPermanently()">Save Brand</button>
+                </div>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label class="form-label">Approx Value (₹) *</label>
+                <input type="number" class="form-control form-control-sm fw-bold text-success" id="approxValue" placeholder="0.00" required>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label class="form-label">Mode</label>
+                <select class="form-select form-select-sm" id="mode">
+                  <option value="Email">Email</option>
+                  <option value="Phone Call">Phone Call</option>
+                  <option value="Visit">Direct Visit</option>
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Website">Website</option>
+                  <option value="IndiaMart">IndiaMart</option>
+                  <option value="Digital Marketing">Digital Marketing</option>
+                  <option value="Tradeindia">Tradeindia</option>
+                  <option value="JustDial">JustDial</option>
+                  <option value="IndMall">IndMall</option>
+                </select>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label class="form-label">Enquiry Date *</label>
+                <input type="date" class="form-control form-control-sm" id="enquiryDate" required onchange="calculatePaymentFollowupDate()">
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label class="form-label">Expected Close Date</label>
+                <input type="date" class="form-control form-control-sm" id="expectedClose">
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label class="form-label text-primary">Lead Follow-Up Date</label>
+                <input type="date" class="form-control form-control-sm fw-bold border-primary" id="leadFollowup">
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label class="form-label">Payment Status</label>
+                <select class="form-select form-select-sm" id="paymentStatus">
+                  <option value="Pending" selected>Pending</option>
+                  <option value="Advance Received">Advance Received</option>
+                  <option value="Fully Paid">Fully Paid</option>
+                  <option value="Partial">Partial Payment</option>
+                  <option value="Credit">Credit</option>
+                </select>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label class="form-label text-dark fw-bold">Payment Terms *</label>
+                <select class="form-select form-select-sm fw-bold border-primary" id="paymentTermsSelect" onchange="calculatePaymentFollowupDate()">
+                  <option value="0" selected>100% Advance (0 Days)</option>
+                  <option value="7">7 Days Credit</option>
+                  <option value="15">15 Days Credit</option>
+                  <option value="30">30 Days Credit</option>
+                  <option value="45">45 Days Credit</option>
+                  <option value="60">60 Days Credit</option>
+                  <option value="90">90 Days Credit</option>
+                </select>
+              </div>
+
+              <div class="col-6 col-md-3">
+                <label class="form-label text-success fw-bold">Payment Follow-Up Date</label>
+                <input type="date" class="form-control form-control-sm fw-bold border-success bg-light" id="paymentFollowupDate">
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label">Internal Remark / Notes</label>
+                <input type="text" class="form-control form-control-sm" id="remark" placeholder="Any internal notes...">
+              </div>
+            </div>
+
+            <div class="mt-3 text-end d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-outline-secondary px-4 fw-bold" onclick="resetEnquiryForm()"><i class="fa fa-undo me-1"></i> Reset Form</button>
+              <button type="submit" class="btn btn-primary px-5 fw-bold" id="saveEnquiryBtn"><i class="fa fa-save me-1"></i> Save Enquiry</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODULE: TO-DO LIST -->
       <div id="todoModule" class="d-none">
         <div class="card p-3 mb-3">
           <div class="row align-items-center g-2">
@@ -553,7 +549,7 @@
                 <button class="btn btn-sm btn-link text-dark p-0" onclick="changeTodoCalendarMonth(1)"><i class="fa fa-chevron-right"></i></button>
               </div>
             </div>
-            <div class="col-md-4 text-md-end">
+            <div class="col-md-4 text-md-end" id="todoSalespersonFilterWrapper">
               <label class="small text-muted me-1">Sales Person:</label>
               <select id="todoFilterSalesPerson" onchange="renderTodoCalendar()" class="form-select form-select-sm d-inline-block w-auto">
                 <option value="ALL">All Team Member</option>
@@ -574,6 +570,7 @@
         </div>
       </div>
 
+      <!-- MODULE: ANALYTICS -->
       <div id="analyticsModule" class="d-none">
         <div class="card p-4 mb-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
@@ -632,6 +629,7 @@
         </div>
       </div>
 
+      <!-- MODULE: LOST ENQUIRIES -->
       <div id="lostModule" class="d-none">
         <div class="card p-4">
           <h5 class="fw-bold text-danger mb-3">❌ Lost Enquiries Log</h5>
@@ -655,6 +653,7 @@
         </div>
       </div>
 
+      <!-- MODULE: CALLS & VISITS -->
       <div id="activityModule" class="d-none">
         <div class="card p-3 mb-3">
           <div class="row align-items-center g-2">
@@ -724,6 +723,7 @@
   </div>
 </div>
 
+<!-- TO-DO MODAL -->
 <div class="modal fade" id="todoDateModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content border-0 rounded-4 shadow">
@@ -784,6 +784,7 @@
   </div>
 </div>
 
+<!-- EXPORT MODAL -->
 <div class="modal fade" id="exportReportModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 rounded-4 shadow">
@@ -832,6 +833,7 @@
   </div>
 </div>
 
+<!-- ACTIVITY MODAL -->
 <div class="modal fade" id="dateActivityModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content border-0 rounded-4 shadow">
@@ -913,6 +915,7 @@
   </div>
 </div>
 
+<!-- LEAD DETAILS MODAL -->
 <div class="modal fade" id="leadDetailsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
@@ -1018,12 +1021,7 @@
             <label class="form-label text-success">Payment Follow-Up Date</label>
             <input type="date" id="editPaymentFollowup" class="form-control form-control-sm fw-bold border-success">
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Dispatch Info</label>
-            <input type="text" id="editDispatch" class="form-control form-control-sm">
-          </div>
-          <!-- Delivery Status Box (Only visible/active when Status is Won) -->
-          <div class="col-md-4" id="deliveryStatusWrapper">
+                    <div class="col-md-4" id="deliveryStatusWrapper">
             <label class="form-label text-info fw-bold" id="deliveryStatusLabel">Delivery Status</label>
             <select id="editDispatchStatus" class="form-select form-select-sm fw-bold border-info">
               <option value="Dispatched">Dispatched</option>
@@ -1275,21 +1273,6 @@
     initGeolocation();
   });
 
-  function toggleEnquiryForm() {
-    const wrapper = document.getElementById('enquiryFormCollapseWrapper');
-    const btn = document.getElementById('toggleEnquiryFormBtn');
-    if (!wrapper || !btn) return;
-    if (wrapper.classList.contains('d-none')) {
-      wrapper.classList.remove('d-none');
-      btn.innerHTML = '<i class="fa fa-eye-slash me-1"></i> Hide Form';
-      btn.classList.replace('btn-primary', 'btn-outline-primary');
-    } else {
-      wrapper.classList.add('d-none');
-      btn.innerHTML = '<i class="fa fa-plus me-1"></i> Show / Create Enquiry';
-      btn.classList.replace('btn-outline-primary', 'btn-primary');
-    }
-  }
-
   function resetEnquiryForm() {
     const form = document.getElementById('enquiryForm');
     if (form) form.reset();
@@ -1425,85 +1408,97 @@
   }
 
   function onMasterDataLoaded(data) {
-  if (!data) return;
-  rawCustomers = data.customers || [];
-  masterSalesPersons = data.salesPersons || [];
-  renderBrandCheckboxes(data.brands || []);
+    if (!data) return;
+    rawCustomers = data.customers || [];
+    masterSalesPersons = data.salesPersons || [];
+    renderBrandCheckboxes(data.brands || []);
 
-  const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
-  const isAdmin = role.indexOf('admin') > -1;
-  const isManager = role.indexOf('manager') > -1;
-  const isMgmt = isAdmin || isManager;
+    const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
+    const isAdmin = role.indexOf('admin') > -1;
+    const isManager = role.indexOf('manager') > -1;
+    const isMgmt = isAdmin || isManager;
 
-  let spOptionsHtml = '';
-  let filterOpts = '';
-  let adminTargetOpts = '';
-  let exportSpOpts = '';
+    let spOptionsHtml = '';
+    let filterOpts = '';
+    let adminTargetOpts = '';
+    let exportSpOpts = '';
 
-  // Sirf Admin ya Manager ke liye 'All Team Member' ka option add hoga
-  if (isMgmt) {
-    filterOpts += '<option value="ALL">All Team Member</option>';
-    exportSpOpts += '<option value="ALL">All Team Members</option>';
-  }
-
-  masterSalesPersons.forEach(sp => {
-    spOptionsHtml += `<option value="${sp}">`;
-    filterOpts += `<option value="${sp}">${sp}</option>`;
-    adminTargetOpts += `<option value="${sp}">${sp}</option>`;
-    exportSpOpts += `<option value="${sp}">${sp}</option>`;
-  });
-
-  document.getElementById('salesPersonsList').innerHTML = spOptionsHtml;
-  
-  const filterSalesPersonEl = document.getElementById('filterSalesPerson');
-  filterSalesPersonEl.innerHTML = filterOpts;
-
-  const exportSpSelectEl = document.getElementById('exportSpSelect');
-  exportSpSelectEl.innerHTML = exportSpOpts;
-
-  document.getElementById('actFilterSalesPerson').innerHTML = filterOpts;
-  if (document.getElementById('todoFilterSalesPerson')) document.getElementById('todoFilterSalesPerson').innerHTML = filterOpts;
-  if (document.getElementById('adminTargetSp')) document.getElementById('adminTargetSp').innerHTML = adminTargetOpts;
-
-  const adminTargetCard = document.getElementById('adminTargetCard');
-  if (adminTargetCard) {
-    if (isAdmin) adminTargetCard.classList.remove('d-none');
-    else adminTargetCard.classList.add('d-none');
-  }
-
-  const spInputEl = document.getElementById('salesPersonInput');
-  const transferWrapper = document.getElementById('transferActionWrapper');
-
-  if (!isMgmt) {
-    if (spInputEl) { 
-      spInputEl.value = loggedInUser ? loggedInUser.salesPerson : ''; 
-      spInputEl.readOnly = true; 
+    if (isMgmt) {
+      filterOpts += '<option value="ALL">All Team Member</option>';
+      exportSpOpts += '<option value="ALL">All Team Members</option>';
     }
-    if (filterSalesPersonEl) {
-      filterSalesPersonEl.value = loggedInUser ? loggedInUser.salesPerson : '';
-      filterSalesPersonEl.disabled = true;
-    }
-    if (exportSpSelectEl) {
-      exportSpSelectEl.value = loggedInUser ? loggedInUser.salesPerson : '';
-      exportSpSelectEl.disabled = true;
-    }
-    if (transferWrapper) transferWrapper.classList.add('d-none');
-  } else {
-    if (transferWrapper) transferWrapper.classList.remove('d-none');
-    let tOpts = '<option value="">Transfer Lead To...</option>';
-    masterSalesPersons.forEach(sp => { tOpts += `<option value="${sp}">${sp}</option>`; });
-    document.getElementById('modalTransferSp').innerHTML = tOpts;
-  }
 
-  if (loggedInUser && loggedInUser.salesPerson && spInputEl && !spInputEl.value) {
-    spInputEl.value = loggedInUser.salesPerson;
-  }
+    masterSalesPersons.forEach(sp => {
+      spOptionsHtml += `<option value="${sp}">`;
+      filterOpts += `<option value="${sp}">${sp}</option>`;
+      adminTargetOpts += `<option value="${sp}">${sp}</option>`;
+      exportSpOpts += `<option value="${sp}">${sp}</option>`;
+    });
 
-  filterCustomersBySalesPerson();
-  filterCustomerDropdownForActivity();
-  loadDashboardData();
-  setTimeout(loadSidebarTargetInfo, 600);
-}
+    document.getElementById('salesPersonsList').innerHTML = spOptionsHtml;
+    
+    const filterSalesPersonEl = document.getElementById('filterSalesPerson');
+    filterSalesPersonEl.innerHTML = filterOpts;
+
+    const exportSpSelectEl = document.getElementById('exportSpSelect');
+    exportSpSelectEl.innerHTML = exportSpOpts;
+
+    document.getElementById('actFilterSalesPerson').innerHTML = filterOpts;
+    
+    const todoFilterEl = document.getElementById('todoFilterSalesPerson');
+    const todoWrapper = document.getElementById('todoSalespersonFilterWrapper');
+    if (todoFilterEl) {
+      if (isMgmt) {
+        todoFilterEl.innerHTML = filterOpts;
+        if (todoWrapper) todoWrapper.style.display = 'block';
+      } else {
+        todoFilterEl.innerHTML = `<option value="${loggedInUser.salesPerson}">${loggedInUser.salesPerson}</option>`;
+        todoFilterEl.value = loggedInUser.salesPerson;
+        if (todoWrapper) todoWrapper.style.display = 'none';
+      }
+    }
+
+    if (document.getElementById('adminTargetSp')) document.getElementById('adminTargetSp').innerHTML = adminTargetOpts;
+
+    const adminTargetCard = document.getElementById('adminTargetCard');
+    if (adminTargetCard) {
+      if (isAdmin) adminTargetCard.classList.remove('d-none');
+      else adminTargetCard.classList.add('d-none');
+    }
+
+    const spInputEl = document.getElementById('salesPersonInput');
+    const transferWrapper = document.getElementById('transferActionWrapper');
+
+    if (!isMgmt) {
+      if (spInputEl) { 
+        spInputEl.value = loggedInUser ? loggedInUser.salesPerson : ''; 
+        spInputEl.readOnly = true; 
+      }
+      if (filterSalesPersonEl) {
+        filterSalesPersonEl.value = loggedInUser ? loggedInUser.salesPerson : '';
+        filterSalesPersonEl.disabled = true;
+      }
+      if (exportSpSelectEl) {
+        exportSpSelectEl.value = loggedInUser ? loggedInUser.salesPerson : '';
+        exportSpSelectEl.disabled = true;
+      }
+      if (transferWrapper) transferWrapper.classList.add('d-none');
+    } else {
+      if (transferWrapper) transferWrapper.classList.remove('d-none');
+      let tOpts = '<option value="">Transfer Lead To...</option>';
+      masterSalesPersons.forEach(sp => { tOpts += `<option value="${sp}">${sp}</option>`; });
+      document.getElementById('modalTransferSp').innerHTML = tOpts;
+    }
+
+    if (loggedInUser && loggedInUser.salesPerson && spInputEl && !spInputEl.value) {
+      spInputEl.value = loggedInUser.salesPerson;
+    }
+
+    filterCustomersBySalesPerson();
+    filterCustomerDropdownForActivity();
+    loadDashboardData();
+    setTimeout(loadSidebarTargetInfo, 600);
+  }
 
   async function submitAdminTargetUpdate() {
     const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
@@ -1638,7 +1633,9 @@
       paymentTerms: termsSelect.options[termsSelect.selectedIndex].text,
       paymentTermsDays: termsSelect.value,
       paymentFollowup: document.getElementById('paymentFollowupDate').value,
-      dispatch: document.getElementById('dispatch').value,
+      // New leads must never start as Dispatched. Delivery status is only
+      // applicable after the lead becomes Won, so send it explicitly blank.
+      dispatch: '',
       remark: document.getElementById('remark').value,
       latitude: userGeoCoords ? userGeoCoords.latitude : '',
       longitude: userGeoCoords ? userGeoCoords.longitude : ''
@@ -1662,17 +1659,18 @@
     sessionStorage.removeItem('portal_dashboard_data');
     applyDashboardFilters();
     resetEnquiryForm();
-    saveBtn.disabled = false; saveBtn.innerText = "Save Enquiry";
 
     const res = await callAppsScriptApi("saveEnquiry", formData);
-    // 👇 API response aane ke baad button ko wapas enable karna zaroori hai
-  saveBtn.disabled = false; 
-  saveBtn.innerText = "Save Enquiry";
+    saveBtn.disabled = false; 
+    saveBtn.innerText = "Save Enquiry";
     
     if (res && res.success) {
-      showFloatingNotification("Success", res.message);
+      showFloatingNotification("Success", res.message || "Lead saved successfully.");
       sessionStorage.removeItem('portal_dashboard_data');
-      loadDashboardData();
+      // Wait for the fresh Google Sheets data before opening the dashboard,
+      // so the newly saved lead is immediately available to View Details.
+      await loadDashboardData();
+      showTab('enquiry');
     } else {
       showAlert('Error: ' + (res ? res.message : 'Failed'), 'danger');
       loadDashboardData();
@@ -1867,7 +1865,6 @@
         let leadFup = item.leadFollowup ? `<span class="badge bg-light text-primary border border-primary">${escapeHtml(item.leadFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
         let payFup = item.paymentFollowup ? `<span class="badge bg-light text-success border border-success">${escapeHtml(item.paymentFollowup)}</span>` : '<span class="badge bg-light text-muted border">Not Set</span>';
         
-        // Delivery status sirf Won ke liye dikhega table mein, baki mein '-'
         let dispatchHtml = '<span class="text-muted">-</span>';
         if (String(item.status).toLowerCase() === 'won') {
           let dispatchVal = item.dispatch || 'Pending';
@@ -1892,7 +1889,7 @@
             <td>${payFup}</td>
             <td>${dispatchHtml}</td>
             <td><span class="badge ${badgeColor}">${escapeHtml(item.status || 'New Lead')}</span></td>
-            <td><button type="button" class="btn btn-sm btn-primary py-0 px-2" onclick="openEditModal('${escapeHtml(item.id)}')">👁️ Details</button></td>
+            <td><button type="button" class="btn btn-sm btn-primary py-0 px-2" onclick="openEditModal('${escapeHtml(item.id)}')">👁️️ Details</button></td>
           </tr>
         `;
       });
@@ -1974,10 +1971,20 @@
   }
 
   function openEditModal(id) {
-    const item = globalEnquiries.find(e => String(e.id) === String(id));
-    if (!item) return;
+    console.log("Opening edit modal for ID:", id);
+    console.log("Global Enquiries array length:", globalEnquiries ? globalEnquiries.length : 0);
 
-    currentLeadBrand = item.brand || 'Industrial Equipment';
+    const targetId = String(id || '').trim().toLowerCase();
+    const item = globalEnquiries.find(e => String(e.id || '').trim().toLowerCase() === targetId);
+    
+    if (!item) {
+      console.error("Lead not found in globalEnquiries for ID:", targetId);
+      alert("Lead details not found in current data! Please refresh dashboard.");
+      return;
+    }
+
+    console.log("Found item:", item);
+
     document.getElementById('modalEnqTitle').innerText = "Lead Details - " + item.id;
     document.getElementById('editEnqId').value = item.id;
     document.getElementById('mCustName').innerText = item.customer || '-';
@@ -1985,7 +1992,10 @@
     document.getElementById('mMode').innerText = item.mode || '-';
     document.getElementById('mSalesPerson').innerText = item.salesPerson || '-';
     document.getElementById('mDescription').innerText = item.description || '-';
-    document.getElementById('editDispatchStatus').value = item.dispatch || 'Pending';
+    const editDispatchStatusEl = document.getElementById('editDispatchStatus');
+    if (editDispatchStatusEl) {
+      editDispatchStatusEl.value = item.dispatch || 'Pending';
+    }
 
     const masterCustomer = findMasterCustomer(item.customer, item.salesPerson);
     document.getElementById('mCustContact').innerText = masterCustomer ? getCustomerField(masterCustomer, ['contactPerson', 'contact']) : '-';
@@ -2000,16 +2010,23 @@
     document.getElementById('editLeadFollowup').value = item.leadFollowup || '';
     document.getElementById('editPaymentTerms').value = item.paymentTerms || '';
     document.getElementById('editPaymentFollowup').value = item.paymentFollowup || '';
-    document.getElementById('editDispatch').value = item.dispatch || '';
     document.getElementById('editLostReason').value = item.lostReason || '';
     document.getElementById('editRemark').value = item.remark || '';
 
     toggleModalLostReason();
     checkDeliveryStatusCondition();
     fetchAndRenderDynamicCustomerDetails(item.customer, item.salesPerson);
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('leadDetailsModal')).show();
-  }
 
+    // Safe Bootstrap Modal Opening
+    const modalEl = document.getElementById('leadDetailsModal');
+    if (modalEl) {
+      let modalInstance = bootstrap.Modal.getInstance(modalEl);
+      if (!modalInstance) {
+        modalInstance = new bootstrap.Modal(modalEl);
+      }
+      modalInstance.show();
+    }
+  }
   function findMasterCustomer(customerName, salesPerson) {
     const name = String(customerName || '').trim().toLowerCase();
     if (!name || !Array.isArray(rawCustomers)) return null;
@@ -2136,7 +2153,11 @@
     const leadFupVal = document.getElementById('editLeadFollowup').value;
     const payTermsVal = document.getElementById('editPaymentTerms').value;
     const payFupVal = document.getElementById('editPaymentFollowup').value;
-    const dispatchVal = (stVal.toLowerCase() === 'won') ? document.getElementById('editDispatchStatus').value : 'Pending';
+    // Delivery/Dispatch status is only applicable when the lead is Won.
+    // For New Lead / Live / Lost etc., keep the Google Sheet cell blank.
+    const dispatchVal = (stVal.toLowerCase() === 'won')
+      ? (document.getElementById('editDispatchStatus').value || 'Pending')
+      : '';
     const remarkVal = document.getElementById('editRemark').value;
 
     const payload = {
@@ -2360,7 +2381,10 @@
 
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
-    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
+    
+    const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
+    const isMgmt = role.indexOf('admin') > -1 || role.indexOf('manager') > -1;
+    const selectedSp = (isMgmt && document.getElementById('todoFilterSalesPerson')) ? document.getElementById('todoFilterSalesPerson').value : (loggedInUser ? loggedInUser.salesPerson : 'ALL');
 
     const grid = document.getElementById('todoCalendarDays');
     if (!grid) return;
@@ -2372,7 +2396,15 @@
 
     for (let d = 1; d <= totalDays; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayTasks = (globalTasks || []).filter(t => normalizeDateForMatch(t.dueDate) === dateStr && (selectedSp === 'ALL' || t.salesPerson === selectedSp));
+      const dayTasks = (globalTasks || []).filter(t => {
+        const matchDate = normalizeDateForMatch(t.dueDate) === dateStr;
+        if (!matchDate) return false;
+        if (isMgmt) {
+          return selectedSp === 'ALL' || String(t.salesPerson || '').toLowerCase() === String(selectedSp).toLowerCase();
+        } else {
+          return String(t.salesPerson || '').toLowerCase().trim() === String(loggedInUser.salesPerson || '').toLowerCase().trim();
+        }
+      });
       
       const pendingCount = dayTasks.filter(t => String(t.status).toLowerCase() !== 'completed').length;
       const completedCount = dayTasks.filter(t => String(t.status).toLowerCase() === 'completed').length;
@@ -2403,10 +2435,17 @@
     document.getElementById('modalTodoTitle').value = '';
     
     const spInput = document.getElementById('modalTodoSalesPerson');
-    const activeSpFilter = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
+    const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
+    const isMgmt = role.indexOf('admin') > -1 || role.indexOf('manager') > -1;
+
     if (spInput) {
-      if (activeSpFilter !== 'ALL') spInput.value = activeSpFilter;
-      else if (loggedInUser && loggedInUser.salesPerson) spInput.value = loggedInUser.salesPerson;
+      if (isMgmt) {
+        const activeSpFilter = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
+        spInput.value = (activeSpFilter !== 'ALL') ? activeSpFilter : (loggedInUser ? loggedInUser.salesPerson : '');
+      } else {
+        spInput.value = loggedInUser ? loggedInUser.salesPerson : '';
+        spInput.readOnly = true;
+      }
     }
 
     renderModalTodoList();
@@ -2414,8 +2453,20 @@
   }
 
   function renderModalTodoList() {
-    const selectedSp = document.getElementById('todoFilterSalesPerson') ? document.getElementById('todoFilterSalesPerson').value : 'ALL';
-    const tasks = (globalTasks || []).filter(t => normalizeDateForMatch(t.dueDate) === selectedTodoDateStr && (selectedSp === 'ALL' || t.salesPerson === selectedSp));
+    const role = loggedInUser && loggedInUser.role ? String(loggedInUser.role).toLowerCase() : '';
+    const isMgmt = role.indexOf('admin') > -1 || role.indexOf('manager') > -1;
+    const selectedSp = (isMgmt && document.getElementById('todoFilterSalesPerson')) ? document.getElementById('todoFilterSalesPerson').value : (loggedInUser ? loggedInUser.salesPerson : 'ALL');
+
+    const tasks = (globalTasks || []).filter(t => {
+      const matchDate = normalizeDateForMatch(t.dueDate) === selectedTodoDateStr;
+      if (!matchDate) return false;
+      if (isMgmt) {
+        return selectedSp === 'ALL' || String(t.salesPerson || '').toLowerCase() === String(selectedSp).toLowerCase();
+      } else {
+        return String(t.salesPerson || '').toLowerCase().trim() === String(loggedInUser.salesPerson || '').toLowerCase().trim();
+      }
+    });
+
     const tbody = document.getElementById('modalTodoTableBody');
     if (!tbody) return;
 
@@ -2471,6 +2522,7 @@
     if (res && res.success) {
       showFloatingNotification("Task Added", `Task scheduled for ${selectedTodoDateStr}`);
       document.getElementById('modalTodoTitle').value = '';
+      sessionStorage.removeItem('portal_dashboard_data');
       await loadDashboardData();
       setTimeout(renderModalTodoList, 400);
     } else {
@@ -2499,12 +2551,13 @@
       return;
     }
 
-    ['enquiry', 'todo', 'analytics', 'lost', 'activity'].forEach(t => {
+    ['enquiry', 'add-lead', 'todo', 'analytics', 'lost', 'activity'].forEach(t => {
       const mod = document.getElementById(t + 'Module');
       const btn = document.getElementById('tab-' + t + '-btn');
       if (mod) mod.classList.toggle('d-none', t !== tabName);
       if (btn) btn.classList.toggle('active', t === tabName);
     });
+
     if (tabName === 'analytics') renderPowerBiDashboard();
     if (tabName === 'activity') renderActivityCalendarAndMatrix();
     if (tabName === 'todo') renderTodoCalendar();
